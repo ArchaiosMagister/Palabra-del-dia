@@ -31,8 +31,20 @@
     .section-title{font-family:"Crimson Pro",serif;font-size:28px;font-weight:500;margin:0 0 5px}
     .section-note{color:var(--muted);margin:0 0 20px}
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}
-    .word-card{background:var(--paper2);border:1px solid var(--line);border-radius:5px;padding:22px 23px;box-shadow:var(--shadow)}
+    .word-card{background:var(--paper2);border:1px solid var(--line);border-radius:5px;padding:17px 20px;box-shadow:var(--shadow)}
+    .entry-preview{width:100%;text-align:left;color:inherit;background:var(--paper2);border:1px solid var(--line);border-radius:5px;padding:17px 20px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s,transform .15s}
+    .entry-preview:hover{border-color:var(--gold);transform:translateY(-2px)}
+    .entry-preview:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .preview-term{display:block;font:600 25px/1.1 "Crimson Pro",Georgia,serif;color:#332f27;margin-bottom:8px}
+    .preview-text{display:block;color:var(--muted);line-height:1.45}
+    .preview-more{display:block;margin-top:10px;color:var(--red);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
     .term{font-size:29px;line-height:1.1;margin:0 0 14px;font-weight:600;color:#332f27}
+    .entry-dialog{width:min(760px,calc(100% - 28px));max-height:88vh;overflow:auto;border:1px solid var(--gold);border-radius:7px;padding:0;background:var(--paper2);color:var(--ink);box-shadow:0 20px 70px #20180f55}
+    .entry-dialog::backdrop{background:#211b14a8}
+    .dialog-inner{padding:25px}
+    .dialog-top{display:flex;justify-content:flex-end;margin-bottom:4px}
+    .dialog-close{background:transparent;border:1px solid var(--line);border-radius:4px;padding:7px 12px;color:var(--muted);cursor:pointer;font:600 13px "Source Sans 3"}
+    @media(max-width:560px){.dialog-inner{padding:19px}}
     .entry-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:700;margin:16px 0 4px}
     .entry-text{line-height:1.55;margin:0;white-space:pre-wrap}.entry-text em,footer em{font-style:italic}
     .vote-area{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -120,6 +132,7 @@
     <h2 class="section-title">Las palabras explicadas</h2>
     <p class="section-note" id="course-caption">Consulta las fichas del curso.</p>
     <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
+    <dialog id="entry-dialog" class="entry-dialog" aria-label="Ficha completa"><div id="entry-dialog-content" class="dialog-inner"></div></dialog>
   </section>
   <section id="ranking" class="hidden">
     <div class="toolbar">
@@ -159,6 +172,7 @@
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) await loadAdminEntries(); });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
+    $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
@@ -386,19 +400,34 @@
     const visible=entries.filter(e=>[e.term,e.origin,e.definition,e.story].some(v=>(v||"").toLocaleLowerCase("es").includes(query)));
     if(!visible.length) { $("cards").innerHTML='<div class="empty">No hay fichas que coincidan con la búsqueda.</div>'; return; }
     $("cards").innerHTML=visible.map(e=>{
-      const ownCourse=student && student.course_id===selectedCourse;
-      const average=ratingFor(e);
-      const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
-      return '<article class="word-card"><h3 class="term">'+formatText(e.term)+'</h3>'+
-        (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
-        (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
-        (e.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
-        '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
-        (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
-        '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
-        '</div></article>';
+      const excerpt=(e.definition||e.origin||e.story||"").replace(/\s+/g," ").trim();
+      const shortText=excerpt.length>150?excerpt.slice(0,147).trimEnd()+"…":excerpt;
+      return '<button type="button" class="entry-preview" data-open-entry="'+escapeHtml(e.id)+'">'+
+        '<span class="preview-term">'+formatText(e.term)+'</span>'+
+        (shortText?'<span class="preview-text">'+formatText(shortText)+'</span>':'')+
+        '<span class="preview-more">Abrir ficha completa →</span></button>';
     }).join("");
-    $("cards").querySelectorAll(".stars button").forEach(btn=>btn.addEventListener("click",()=>vote(btn.dataset.entry,Number(btn.dataset.rating),btn)));
+    $("cards").querySelectorAll("[data-open-entry]").forEach(btn=>btn.addEventListener("click",()=>openEntry(btn.dataset.openEntry)));
+  }
+
+  function openEntry(entryId) {
+    const e=entries.find(item=>item.id===entryId);
+    if(!e) return;
+    const ownCourse=student && student.course_id===selectedCourse;
+    const average=ratingFor(e);
+    const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
+    $("entry-dialog-content").innerHTML='<div class="dialog-top"><button type="button" class="dialog-close" id="close-entry-dialog">Cerrar ✕</button></div>'+
+      '<article class="word-card"><h3 class="term">'+formatText(e.term)+'</h3>'+
+      (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
+      (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
+      (e.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
+      '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
+      (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
+      '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
+      '</div></article>';
+    $("close-entry-dialog").addEventListener("click",()=>$("entry-dialog").close());
+    $("entry-dialog-content").querySelectorAll(".stars button").forEach(btn=>btn.addEventListener("click",()=>vote(btn.dataset.entry,Number(btn.dataset.rating),btn)));
+    if(!$("entry-dialog").open) $("entry-dialog").showModal();
   }
 
   async function vote(courseWordId,rating,button) {
@@ -417,6 +446,7 @@
     showNotice("Tu valoración se ha guardado. Puedes cambiarla cuando quieras.");
     await loadRankings(selectedCourse);
     renderEntries();
+    if($("entry-dialog").open) openEntry(courseWordId);
   }
 
   async function loadRankings(courseId) {
