@@ -20,6 +20,7 @@
     h1{font-size:clamp(38px,6vw,58px);font-weight:500;letter-spacing:-.025em;margin:5px 0 0}
     .subtitle{color:var(--muted);margin:3px 0 0;font-family:"Crimson Pro",serif;font-size:18px}
     .institution{display:inline-block;color:var(--red);margin:14px 0 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+    .course-identification{display:inline-block;margin:9px 0 0;padding:5px 13px;border:1px solid var(--line);border-radius:3px;color:var(--red);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#fffaf1}
     nav{display:flex;justify-content:center;gap:8px;padding:0 0 18px}
     nav button,.tab{border:0;background:transparent;color:var(--muted);padding:9px 16px;cursor:pointer;font:600 14px "Source Sans 3";border-bottom:2px solid transparent}
     nav button.active{color:var(--red);border-color:var(--red)}
@@ -69,6 +70,7 @@
       <h1>Palabra del día</h1>
       <p class="subtitle">Un pequeño diccionario de nuestras clases</p>
       <p class="institution">IES Veles e Vents · Torrent</p>
+      <p class="course-identification">1.º de Bachillerato · Curso 2026-2027</p>
     </div>
     <nav aria-label="Secciones">
       <button id="tab-dictionary" class="active" type="button">Diccionario</button>
@@ -130,6 +132,7 @@
   const SUPABASE_URL = "https://rzjemisvaaqpnvvgfntl.supabase.co";
   const SUPABASE_KEY = "sb_publishable_x4KEF3M2CmSXCPG6XhZ0jw_WSmd58YO";
   const COURSE_ID_2026 = "ec7e0b88-8304-4115-aa8d-fd703ac2b7ea";
+  const SITE_COURSE_ID = COURSE_ID_2026;
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map(), isTeacher = false;
   let selectedCourse = null, activeTab = "dictionary";
@@ -174,11 +177,11 @@
   }
 
   async function loadCourses() {
-    const {data,error}=await client.from("courses").select("id,name,is_active").order("name",{ascending:false});
+    const {data,error}=await client.from("courses").select("id,name,is_active").eq("id",SITE_COURSE_ID).order("name",{ascending:false});
     if(error) throw error;
     courses=data||[];
     if(!courses.length) throw new Error("Todavía no hay cursos publicados.");
-    selectedCourse=(courses.find(c=>c.is_active)||courses[0]).id;
+    selectedCourse=SITE_COURSE_ID;
     for(const id of ["course-select","rank-course-select"]) {
       $(id).innerHTML=courses.map(c=>'<option value="'+escapeHtml(c.id)+'">'+escapeHtml(c.name)+'</option>').join("");
       $(id).value=selectedCourse;
