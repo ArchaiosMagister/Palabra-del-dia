@@ -19,8 +19,8 @@
     h1,h2,h3,.term,.brand{font-family:"Crimson Pro",Georgia,serif}
     h1{font-size:clamp(38px,6vw,58px);font-weight:500;letter-spacing:-.025em;margin:5px 0 0}
     .subtitle{color:var(--muted);margin:3px 0 0;font-family:"Crimson Pro",serif;font-size:18px}
-    .institution{display:inline-block;color:var(--red);margin:14px 0 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
-    .course-identification{display:inline-block;margin:9px 0 0;padding:5px 13px;border:1px solid var(--line);border-radius:3px;color:var(--red);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#fffaf1}
+    .institution{display:block;width:max-content;max-width:100%;margin-left:auto;margin-right:auto;color:var(--red);margin:14px 0 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+    .course-identification{display:block;width:max-content;max-width:100%;margin:10px auto 0;padding:5px 13px;border:1px solid var(--line);border-radius:3px;color:var(--red);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#fffaf1}
     nav{display:flex;justify-content:center;gap:8px;padding:0 0 18px}
     nav button,.tab{border:0;background:transparent;color:var(--muted);padding:9px 16px;cursor:pointer;font:600 14px "Source Sans 3";border-bottom:2px solid transparent}
     nav button.active{color:var(--red);border-color:var(--red)}
@@ -34,7 +34,7 @@
     .word-card{background:var(--paper2);border:1px solid var(--line);border-radius:5px;padding:22px 23px;box-shadow:var(--shadow)}
     .term{font-size:29px;line-height:1.1;margin:0 0 14px;font-weight:600;color:#332f27}
     .entry-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:700;margin:16px 0 4px}
-    .entry-text{line-height:1.55;margin:0;white-space:pre-wrap}
+    .entry-text{line-height:1.55;margin:0;white-space:pre-wrap}.entry-text em,footer em{font-style:italic}
     .vote-area{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .stars{display:flex;gap:3px}.stars button{border:0;background:transparent;color:#c9c0af;font-size:27px;line-height:1;padding:2px;cursor:pointer}.stars button.chosen,.stars button:hover{color:var(--gold)}
     button:disabled{opacity:.45;cursor:not-allowed}
@@ -130,7 +130,7 @@
     <div id="rank-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
   </section>
 </main>
-<footer>Non scholae, sed vitae discimus.</footer>
+<footer><em>Non scholae, sed vitae discimus.</em></footer>
 <script>
 (() => {
   const SUPABASE_URL = "https://rzjemisvaaqpnvvgfntl.supabase.co";
@@ -143,6 +143,12 @@
 
   const $ = id => document.getElementById(id);
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+  const latinPattern = new RegExp("(^|[^\\p{L}\\p{N}])(" + "Reprehendenti filio Tito, quod etiam urinæ vectigal commentus esset, pecuniam ex prima pensione admovit ad nares, sciscitans num odore offenderetur; et illo negante|Quod natura non dat, Salmantica non praestat|Quod natura non dat, Salmantica non præstat|Non scholae, sed vitae discimus|Roma traditoribus non praemiat|Roma traditoribus non præmiat|Nil satis nisi optimum|Quod scripsi, scripsi|Carthago delenda est|damnatio memoriae|Pecunia non olet|damnatio memoriæ|cursus honorum|offenderetur|e lotio est|praeteritio|homo novus|Brundisium|pelliculam|præteritio|sciscitans|pellicula|commentus|candidus|hospitis|schedula|schedula|vectigal|pensionе|pecuniam|coniveo|mingere|trivium|persona|admovit|negante|hospes|scheda|pellis|mentis|Atqui|conor|scida|copia|urinæ|nares|odore|filio|prima|mens|cor|æ" + ")(?=$|[^\\p{L}\\p{N}])", "giu");
+  const formatText = value => {
+    const safe = escapeHtml(value);
+    return safe.replace(latinPattern, (match, before, latin) => before + "<em>" + latin + "</em>");
+  };
   const showNotice = message => { $("notice").textContent = message; $("notice").classList.remove("hidden"); };
   const hideNotice = () => $("notice").classList.add("hidden");
   const selectedCourseName = () => courses.find(c => c.id === selectedCourse)?.name || "";
@@ -384,9 +390,9 @@
       const average=ratingFor(e);
       const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
       return '<article class="word-card"><h3 class="term">'+escapeHtml(e.term)+'</h3>'+
-        (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+escapeHtml(e.origin)+'</p>':'')+
-        (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+escapeHtml(e.definition)+'</p>':'')+
-        (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+escapeHtml(e.story)+'</p>':'')+
+        (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
+        (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
+        (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
         '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
         (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
         '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
