@@ -689,6 +689,13 @@
         '<span class="preview-more">Abrir ficha completa →</span></button>';
     }).join("");
     $("cards").querySelectorAll("[data-open-entry]").forEach(btn=>btn.addEventListener("click",()=>openEntry(btn.dataset.openEntry)));
+    // Elimina posibles restos de texto "/n" o "\\n" fuera de las tarjetas.
+    const cardsBox=$("cards");
+    for(let node=cardsBox.parentNode.firstChild;node;){
+      const next=node.nextSibling;
+      if(node.nodeType===Node.TEXT_NODE && /^(?:\\\\n|\\/n)$/.test(node.textContent.trim())) node.remove();
+      node=next;
+    }
   }
 
   function openEntry(entryId) {
