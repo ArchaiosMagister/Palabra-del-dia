@@ -53,6 +53,8 @@
     .admin-term{font-family:"Crimson Pro",serif;font-size:19px}
     .admin-state{display:flex;align-items:center;gap:10px}
     .admin-state .small{min-width:76px;text-align:right}
+    .admin-state button.explained{background:var(--green);color:#fff;border-color:var(--green)}
+    .admin-state button.explained:hover{background:#405544;border-color:#405544}
     @media(max-width:560px){.admin-row{align-items:flex-start;flex-direction:column}.admin-state{width:100%;justify-content:space-between}.admin-state button{flex:1}}
     .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
@@ -106,9 +108,11 @@
       <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
       <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
     </section>
-    <div id="student-panel" class="status hidden" style="margin-top:22px">
-      <span id="student-label"></span>
+    <div id="session-panel" class="status hidden" style="margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <span id="session-label"></span>
+      <button id="logout" class="secondary" type="button">Cerrar sesión</button>
     </div>
+    <div id="student-panel" class="hidden"><span id="student-label"></span></div>
     <div class="toolbar" style="margin-top:38px">
       <select id="course-select" aria-label="Curso académico"></select>
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
@@ -153,6 +157,7 @@
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
     $("teacher-activate").addEventListener("click", activateTeacher);
+    $("logout").addEventListener("click", logout);
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
@@ -224,6 +229,7 @@
   function updateTeacherUI() {
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
+    updateSessionUI();
   }
 
   async function activateTeacher() {
@@ -268,7 +274,7 @@
     $("admin-list").innerHTML=rows.map(r=>
       '<div class="admin-row"><span class="admin-term">'+escapeHtml(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
-      '<button type="button" class="'+(r.explained?'secondary':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
+      '<button type="button" class="'+(r.explained?'secondary explained':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
       (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
     ).join("");
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
@@ -329,8 +335,39 @@
     $("student-panel").classList.toggle("hidden",!linked);
     if(linked) {
       const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
-      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso. La sesión se conserva en este navegador; no cierres sesión ni borres sus datos.";
+      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso.";
     }
+    updateSessionUI();
+  }
+
+  function updateSessionUI() {
+    const visible=!!student||isTeacher;
+    $("session-panel").classList.toggle("hidden",!visible);
+    if(visible) {
+      const roles=[];
+      if(student) roles.push("alumno");
+      if(isTeacher) roles.push("profesor");
+      $("session-label").textContent="Sesión iniciada como "+roles.join(" y ")+". Puedes cerrar sesión desde aquí.";
+    }
+  }
+
+  async function logout() {
+    const button=$("logout");
+    button.disabled=true;
+    try {
+      const {error}=await client.auth.signOut();
+      if(error) throw error;
+      student=null; currentUser=null; isTeacher=false; myVotes.clear();
+      updateStudentUI(); updateTeacherUI();
+      $("login-message").textContent="Has cerrado la sesión.";
+      $("teacher-login-message").textContent="";
+      $("teacher-access-form").classList.add("hidden");
+      await loadEntries();
+      await loadRankings(selectedCourse);
+      showNotice("Sesión cerrada correctamente.");
+    } catch(error) {
+      showNotice("No se ha podido cerrar la sesión. Inténtalo de nuevo.");
+    } finally { button.disabled=false; }
   }
 
   function ratingFor(entry) {
