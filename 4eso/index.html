@@ -159,9 +159,12 @@
     <div class="toolbar">
       <select id="rank-course-select" aria-label="Curso del ranking"></select>
     </div>
-    <h2 class="section-title">Las más valoradas</h2>
-    <p class="section-note">Clasificación histórica por curso, calculada a partir de las valoraciones recibidas.</p>
+    <h2 class="section-title">Clasificación del curso</h2>
+    <p class="section-note">Valoraciones de los alumnos de este curso.</p>
     <div id="rank-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
+    <h2 class="section-title" style="margin-top:34px">Clasificación de 2.º de Bachillerato</h2>
+    <p class="section-note">Clasificación independiente con los votos del grupo de 2.º de Bachillerato.</p>
+    <div id="rank-bach2-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
   </section>
     <div id="teacher-session-panel" class="status hidden" style="max-width:530px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <span id="teacher-session-label">Sesión de profesor iniciada.</span>
@@ -278,7 +281,7 @@
     if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
     entries=(data||[]).filter(row=>row.words).map(row=>({...row.words,...row})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
     myVotes = new Map();
-    if (student && student.course_id === selectedCourse) {
+    if (student) {
       const {data: ownVotes, error: votesError} = await client.from("votes")
         .select("course_word_id,rating").eq("student_id", student.id);
       if (!votesError) (ownVotes || []).forEach(v => myVotes.set(v.course_word_id, Number(v.rating)));
@@ -289,7 +292,7 @@
   }
 
   async function findLinkedStudent() {
-    const {data,error}=await client.from("students").select("id,course_id").maybeSingle();
+    const {data,error}=await client.from("students").select("id,course_id,student_group").maybeSingle();
     if(error) { console.warn(error); return; }
     student=data||null;
     updateStudentUI();
@@ -366,7 +369,7 @@
     studentsBox.innerHTML='<div class="empty">Cargando alumnos…</div>';
     votesBox.innerHTML='<div class="empty">Cargando votaciones…</div>';
     const [studentsResult, wordsResult]=await Promise.all([
-      client.from("students").select("id,display_name,created_at").eq("course_id",selectedCourse).order("created_at",{ascending:true}),
+      client.from("students").select("id,display_name,created_at,student_group").or("course_id.eq."+selectedCourse+",student_group.eq.bachillerato_2").order("created_at",{ascending:true}),
       client.from("course_words").select("id,words(term)").eq("course_id",selectedCourse)
     ]);
     if(studentsResult.error) {
@@ -422,7 +425,7 @@
   }
 
   async function loadStudentProposals() {
-    if(!student) return;
+    if(!student || student.student_group === "bachillerato_2") return;
     const box=$("student-proposal-list");
     box.innerHTML='<div class="empty">Cargando tus propuestas…</div>';
     const {data,error}=await client.from("word_proposals").select("id,term,status,created_at")
@@ -434,7 +437,7 @@
   }
 
   async function submitProposal() {
-    if(!student || student.course_id!==selectedCourse) return;
+    if(!student || student.student_group === "bachillerato_2" || student.course_id!==selectedCourse) return;
     const term=$("proposal-term").value.trim(), message=$("proposal-message"), button=$("proposal-submit");
     if(!term) { message.textContent="Escribe un título para la propuesta."; $("proposal-term").focus(); return; }
     button.disabled=true; message.textContent="Enviando…";
@@ -550,10 +553,10 @@
     const linked=!!student;
     $("login-panel").classList.toggle("hidden",linked);
     $("student-panel").classList.toggle("hidden",!linked);
-    $("student-proposals").classList.toggle("hidden",!linked || student.course_id!==selectedCourse);
+    $("student-proposals").classList.toggle("hidden",!linked || student.student_group === "bachillerato_2" || student.course_id!==selectedCourse);
     if(linked) {
       const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
-      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso.";
+      $("student-label").textContent=student.student_group === "bachillerato_2" ? "Sesión de alumno activada · 2.º de Bachillerato. Puedes votar en las dos webs; no puedes proponer palabras." : "Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso.";
     }
     updateSessionUI();
   }
@@ -606,7 +609,7 @@
   function openEntry(entryId) {
     const e=entries.find(item=>item.id===entryId);
     if(!e) return;
-    const ownCourse=student && student.course_id===selectedCourse;
+    const ownCourse=student && (student.student_group==="bachillerato_2" || student.course_id===selectedCourse);
     const average=ratingFor(e);
     const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
     $("entry-dialog-content").innerHTML='<div class="dialog-top"><button type="button" class="dialog-close" id="close-entry-dialog">Cerrar ✕</button></div>'+
@@ -624,7 +627,7 @@
   }
 
   async function vote(courseWordId,rating,button) {
-    if(!student || student.course_id!==selectedCourse) return;
+    if(!student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
     const buttons=[...button.parentElement.querySelectorAll("button")];
     buttons.forEach(b=>b.disabled=true);
     const {error}=await client.from("votes").upsert(
@@ -651,12 +654,27 @@
     if(error) { $("rank-list").innerHTML='<div class="empty">No se ha podido cargar la clasificación.</div>'; return; }
     rankings=data||[];
     if(activeTab==="ranking" || selectedCourse===courseId) renderEntries();
-    if(!rankings.length) { $("rank-list").innerHTML='<div class="empty">Todavía no hay valoraciones para este curso.</div>'; return; }
-    $("rank-list").innerHTML=rankings.map((r,i)=>
+    $("rank-list").innerHTML=rankings.length ? rankings.map((r,i)=>
       '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
       '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
       '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
-    ).join("");
+    ).join("") : '<div class="empty">Todavía no hay valoraciones de este curso.</div>';
+
+    const {data:bach2Data,error:bach2Error}=await client.from("public_rankings_bach2")
+      .select("course_word_id,term,average_rating,vote_count")
+      .eq("course_id",courseId).gt("vote_count",0)
+      .order("average_rating",{ascending:false}).order("vote_count",{ascending:false});
+    if(bach2Error) {
+      $("rank-bach2-list").innerHTML='<div class="empty">No se ha podido cargar la clasificación de 2.º de Bachillerato.</div>';
+      console.warn(bach2Error);
+    } else {
+      const bach2Rows=bach2Data||[];
+      $("rank-bach2-list").innerHTML=bach2Rows.length ? bach2Rows.map((r,i)=>
+        '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
+        '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
+        '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
+      ).join("") : '<div class="empty">Todavía no hay valoraciones del grupo de 2.º de Bachillerato.</div>';
+    }
   }
 
   init().catch(error=>{console.error(error);showNotice(error.message||"No se ha podido iniciar la aplicación.");});
