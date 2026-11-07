@@ -336,7 +336,7 @@
       hideNotice();
     } catch(error) {
       message.textContent=error.message||"Se ha producido un error.";
-    } finally { button.disabled=false; }
+    } finally { buttons.forEach(button=>button.disabled=false); }
   }
 
   async function loadAdminEntries() {
@@ -564,8 +564,8 @@
   }
 
   async function logout() {
-    const button=$("logout");
-    button.disabled=true;
+    const buttons=[$("logout"),$("teacher-logout")];
+    buttons.forEach(button=>button.disabled=true);
     try {
       const {error}=await client.auth.signOut();
       if(error) throw error;
