@@ -239,7 +239,8 @@
   const SITE_COURSE_ID = COURSE_ID_2026;
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map(), isTeacher = false;
-  let selectedCourse = null, activeTab = "dictionary";\n  let reviewDeck = [], reviewIndex = 0, reviewRevealed = false;
+  let selectedCourse = null, activeTab = "dictionary";
+  let reviewDeck = [], reviewIndex = 0, reviewRevealed = false;
 
   const $ = id => document.getElementById(id);
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -264,7 +265,8 @@
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
-    $("search").addEventListener("input", renderEntries);\n    $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
+    $("search").addEventListener("input", renderEntries);
+    $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
