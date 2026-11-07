@@ -61,6 +61,13 @@
     #teacher-access-toggle{padding:14px 26px;font-size:16px;font-weight:700;min-height:48px;min-width:230px;border-width:2px;letter-spacing:.02em}#teacher-access-toggle{background:var(--red);color:#fff;border-color:var(--red)}#teacher-access-toggle:hover{background:#084b8d;border-color:#084b8d;color:#fff}
     .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
     .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
+    .teacher-fold{border-top:1px solid var(--line);padding:15px 0}
+    .teacher-fold:first-child{border-top:0;padding-top:0}
+    .teacher-fold>summary{cursor:pointer;list-style:none;font:700 19px "Source Serif 4",serif;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .teacher-fold>summary::-webkit-details-marker{display:none}
+    .teacher-fold>summary::after{content:"＋";font:600 20px "Source Sans 3";color:var(--red)}
+    .teacher-fold[open]>summary::after{content:"−"}
+    .teacher-fold-content{padding-top:12px}
     .admin-list{display:grid;gap:8px}
     .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
     .student-name-list,.vote-report-list{display:grid;gap:8px}
@@ -182,22 +189,30 @@
       </div>
     </section>
   <section id="teacher-admin" class="teacher-admin hidden">
-    <h2 class="section-title">Administración del diccionario</h2>
-    <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
-    <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
-    <section class="teacher-report">
-    <section class="teacher-report" id="teacher-proposals-section">
-      <h2 class="section-title">Propuestas de los alumnos</h2>
-      <p class="section-note">Revisa y, si procede, corrige cada ficha antes de aprobarla. Las aprobadas se incorporan al curso como pendientes de explicar.</p>
-      <div id="teacher-proposal-list" class="teacher-proposal-list"><div class="empty">Cargando propuestas…</div></div>
-    </section>
-      <h2 class="section-title">Alumnos y votaciones</h2>
-      <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
-      <h3 class="admin-term">Identificación de alumnos</h3>
-      <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
-      <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
-      <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
-    </section>
+    <details class="teacher-fold">
+      <summary>Administración del diccionario</summary>
+      <div class="teacher-fold-content">
+        <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
+        <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
+      </div>
+    </details>
+    <details class="teacher-fold">
+      <summary>Propuestas de los alumnos</summary>
+      <div class="teacher-fold-content">
+        <p class="section-note">Revisa y, si procede, corrige cada ficha antes de aprobarla. Las aprobadas se incorporan al curso como pendientes de explicar.</p>
+        <div id="teacher-proposal-list" class="teacher-proposal-list"><div class="empty">Cargando propuestas…</div></div>
+      </div>
+    </details>
+    <details class="teacher-fold">
+      <summary>Alumnos y votaciones</summary>
+      <div class="teacher-fold-content">
+        <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
+        <h3 class="admin-term">Identificación de alumnos</h3>
+        <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
+        <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
+        <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
+      </div>
+    </details>
   </section>
 </main>
 <footer><em>Non scholæ, sed vitæ discimus.</em></footer>
