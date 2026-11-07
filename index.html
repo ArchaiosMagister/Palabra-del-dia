@@ -693,7 +693,7 @@
     const cardsBox=$("cards");
     for(let node=cardsBox.parentNode.firstChild;node;){
       const next=node.nextSibling;
-      if(node.nodeType===Node.TEXT_NODE && /^(?:\\\\n|\\/n)$/.test(node.textContent.trim())) node.remove();
+      if(node.nodeType===Node.TEXT_NODE && (node.textContent.trim()==="\\n" || node.textContent.trim()==="/n")) node.remove();
       node=next;
     }
   }
