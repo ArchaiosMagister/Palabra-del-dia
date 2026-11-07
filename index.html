@@ -650,6 +650,7 @@
       panel.innerHTML='<p class="review-progress">Repaso terminado</p><h3 class="review-word">¡Buen trabajo!</h3><p>Has recorrido todas las palabras de este curso.</p><div class="review-actions"><button class="primary" id="review-again" type="button">Repetir repaso</button><button class="review-secondary" id="review-exit" type="button">Volver al diccionario</button></div>';
       $("review-again").addEventListener("click",startReview);
       $("review-exit").addEventListener("click",stopReview);
+      removeStrayNewlineText(panel);
       return;
     }
     const e=reviewDeck[reviewIndex];
@@ -668,12 +669,25 @@
     if(reveal) reveal.addEventListener("click",()=>{reviewRevealed=true;renderReviewCard();});
     if(next) next.addEventListener("click",()=>{reviewIndex++;reviewRevealed=false;renderReviewCard();});
     $("review-exit").addEventListener("click",stopReview);
+    removeStrayNewlineText(panel);
   }
 
   function stopReview() {
     $("review-panel").classList.add("hidden");
     $("cards").classList.remove("hidden");
     $("start-review").textContent="Repasar palabras";
+  }
+
+  function removeStrayNewlineText(root) {
+    if(!root) return;
+    for(const node of Array.from(root.childNodes)) {
+      if(node.nodeType===Node.TEXT_NODE) {
+        const value=node.textContent.trim();
+        if(value==="\\n" || value==="/n") node.remove();
+      } else if(node.nodeType===Node.ELEMENT_NODE && !["SCRIPT","STYLE","TEXTAREA"].includes(node.tagName)) {
+        removeStrayNewlineText(node);
+      }
+    }
   }
 
   function renderEntries() {
