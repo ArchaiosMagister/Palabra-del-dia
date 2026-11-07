@@ -24,7 +24,7 @@
     nav{display:flex;justify-content:center;gap:8px;padding:0 0 18px}
     nav button,.tab{border:0;background:transparent;color:var(--muted);padding:9px 16px;cursor:pointer;font:600 14px "Source Sans 3";border-bottom:2px solid transparent}
     nav button.active{color:var(--red);border-color:var(--red)}
-    main{padding:28px 0 70px}
+    main{padding:28px 0 90px}
     .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
     select,input{font:inherit;color:var(--ink);background:var(--paper2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
     select{min-width:160px}input{min-width:230px;flex:1}
@@ -57,7 +57,7 @@
     .primary{background:var(--red);color:white;border:1px solid var(--red);border-radius:4px;padding:10px 17px;font:600 14px "Source Sans 3";cursor:pointer}
     .primary:hover{background:#6e3028}.secondary{background:transparent;border:1px solid var(--line);padding:8px 12px;border-radius:4px;cursor:pointer;color:var(--muted)}
     .rank-list{background:var(--paper2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
-    .teacher-access{max-width:530px;margin:12px auto 0;text-align:center}
+    .teacher-access{max-width:530px;margin:30px auto 0;text-align:center}
     .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
     .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
     .admin-list{display:grid;gap:8px}
@@ -71,7 +71,7 @@
     .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
     .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
-    footer{text-align:center;border-top:1px solid var(--line);padding:28px 20px 20px;color:var(--muted);font-family:"Crimson Pro",serif}
+    footer{text-align:center;border-top:1px solid var(--line);padding:20px;color:var(--muted);font-family:"Crimson Pro",serif}
     .hidden{display:none!important}
     @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
   </style>
@@ -143,7 +143,7 @@
     <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
   </section>
 </main>
-<footer><em>Non scholae, sed vitae discimus.</em></footer>
+<footer><em>Non scholæ, sed vitæ discimus.</em></footer>
 <script>
 (() => {
   const SUPABASE_URL = "https://rzjemisvaaqpnvvgfntl.supabase.co";
