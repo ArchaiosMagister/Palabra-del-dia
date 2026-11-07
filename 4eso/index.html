@@ -63,9 +63,9 @@
     .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
     .teacher-fold{border-top:1px solid var(--line);padding:15px 0}
     .teacher-fold:first-child{border-top:0;padding-top:0}
-    .teacher-fold>summary{cursor:pointer;list-style:none;font:700 19px "Source Serif 4",serif;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .teacher-fold>summary{cursor:pointer;list-style:none;font:700 19px "Source Serif 4",serif;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:12px;position:relative;text-align:center}
     .teacher-fold>summary::-webkit-details-marker{display:none}
-    .teacher-fold>summary::after{content:"＋";font:600 20px "Source Sans 3";color:var(--red)}
+    .teacher-fold>summary::after{content:"＋";font:600 20px "Source Sans 3";color:var(--red);position:absolute;right:0}
     .teacher-fold[open]>summary::after{content:"−"}
     .teacher-fold-content{padding-top:12px}
     .admin-list{display:grid;gap:8px}
