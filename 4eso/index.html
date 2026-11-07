@@ -264,7 +264,7 @@
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
-    $("search").addEventListener("input", renderEntries);\n    $("start-review").addEventListener("click", startReview);
+    $("search").addEventListener("input", renderEntries);\n    $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
