@@ -61,6 +61,15 @@
     .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
     .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
     .admin-list{display:grid;gap:8px}
+    .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+    .student-name-list,.vote-report-list{display:grid;gap:8px}
+    .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#fffdf8}
+    .student-name-row input{min-width:0;width:100%}
+    .vote-word{padding:12px;border:1px solid var(--line);background:#fffdf8}
+    .vote-word-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:8px}
+    .vote-person{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #eee8dc}
+    .vote-person strong{color:var(--gold)}
+    @media(max-width:560px){.student-name-row{grid-template-columns:1fr}.student-name-row button{width:100%}.vote-word-head{align-items:flex-start;flex-direction:column}}
     .admin-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--line);background:#fffdf8}
     .admin-term{font-family:"Crimson Pro",serif;font-size:19px}
     .admin-state{display:flex;align-items:center;gap:10px}
@@ -141,6 +150,14 @@
     <h2 class="section-title">Administración del diccionario</h2>
     <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
     <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
+    <section class="teacher-report">
+      <h2 class="section-title">Alumnos y votaciones</h2>
+      <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
+      <h3 class="admin-term">Identificación de alumnos</h3>
+      <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
+      <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
+      <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
+    </section>
   </section>
 </main>
 <footer><em>Non scholæ, sed vitæ discimus.</em></footer>
@@ -169,7 +186,7 @@
   async function init() {
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
-    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) await loadAdminEntries(); });
+    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
@@ -186,7 +203,7 @@
       await findLinkedStudent();
       await findLinkedTeacher();
       if (student) await loadEntries();
-      if (isTeacher) await loadAdminEntries();
+      if (isTeacher) { await loadAdminEntries(); await loadTeacherReports(); }
     }
     await loadRankings(selectedCourse);
     renderEntries();
@@ -276,6 +293,7 @@
       if(!isTeacher) throw new Error("El código se ha validado, pero no se ha podido activar la administración. Recarga la página.");
       input.value=""; message.textContent="Acceso de profesor activado.";
       await loadAdminEntries();
+      await loadTeacherReports();
       hideNotice();
     } catch(error) {
       message.textContent=error.message||"Se ha producido un error.";
@@ -300,6 +318,77 @@
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
       btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
     );
+  }
+
+  async function loadTeacherReports() {
+    if(!isTeacher) return;
+    const studentsBox=$("teacher-students"), votesBox=$("teacher-votes");
+    studentsBox.innerHTML='<div class="empty">Cargando alumnos…</div>';
+    votesBox.innerHTML='<div class="empty">Cargando votaciones…</div>';
+    const [studentsResult, wordsResult]=await Promise.all([
+      client.from("students").select("id,display_name,created_at").eq("course_id",selectedCourse).order("created_at",{ascending:true}),
+      client.from("course_words").select("id,words(term)").eq("course_id",selectedCourse)
+    ]);
+    if(studentsResult.error) {
+      studentsBox.innerHTML='<div class="empty">No se ha podido cargar la lista de alumnos.</div>';
+      votesBox.innerHTML='<div class="empty">No se han podido cargar las votaciones.</div>';
+      console.warn(studentsResult.error); return;
+    }
+    const students=studentsResult.data||[];
+    if(!students.length) studentsBox.innerHTML='<div class="empty">Todavía no hay alumnos vinculados a este curso.</div>';
+    else {
+      studentsBox.innerHTML=students.map((st,i)=>
+        '<div class="student-name-row"><span class="small">Alumno '+(i+1)+'</span>'+
+        '<input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
+        '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button></div>'
+      ).join('');
+      studentsBox.querySelectorAll('button[data-save-student]').forEach(btn=>
+        btn.addEventListener('click',()=>saveStudentName(btn.dataset.saveStudent,btn))
+      );
+    }
+    if(wordsResult.error) {
+      votesBox.innerHTML='<div class="empty">No se han podido cargar las palabras.</div>';
+      console.warn(wordsResult.error); return;
+    }
+    const words=(wordsResult.data||[]).filter(w=>w.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
+    if(!words.length) { votesBox.innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
+    const wordIds=words.map(w=>w.id);
+    const votesResult=wordIds.length
+      ? await client.from("votes").select("student_id,course_word_id,rating,updated_at").in("course_word_id",wordIds)
+      : {data:[],error:null};
+    if(votesResult.error) {
+      votesBox.innerHTML='<div class="empty">No se han podido consultar los votos. Comprueba los permisos del profesor.</div>';
+      console.warn(votesResult.error); return;
+    }
+    const studentNames=new Map(students.map(st=>[st.id,(st.display_name||"").trim()]));
+    const votes=votesResult.data||[];
+    votesBox.innerHTML=words.map(word=>{
+      const wordVotes=votes.filter(v=>v.course_word_id===word.id);
+      const average=wordVotes.length ? wordVotes.reduce((sum,v)=>sum+Number(v.rating),0)/wordVotes.length : null;
+      const detail=wordVotes.length
+        ? wordVotes.slice().sort((a,b)=>(studentNames.get(a.student_id)||"").localeCompare(studentNames.get(b.student_id)||"","es")).map(v=>
+          '<div class="vote-person"><span>'+escapeHtml(studentNames.get(v.student_id)||"Nombre pendiente")+'</span><strong>'+Number(v.rating)+'/5</strong></div>'
+        ).join('')
+        : '<p class="small">Todavía no hay votos.</p>';
+      return '<article class="vote-word"><div class="vote-word-head"><strong class="admin-term">'+formatText(word.words.term)+'</strong>'+
+        '<span class="small">'+(average===null?'Sin votos':'Media '+average.toFixed(2).replace(".",",")+'/5 · '+wordVotes.length+' '+(wordVotes.length===1?'voto':'votos'))+'</span></div>'+detail+'</article>';
+    }).join('');
+  }
+
+  async function saveStudentName(studentId,button) {
+    if(!isTeacher) return;
+    const input=$("teacher-students").querySelector('input[data-student-name="'+studentId+'"]');
+    if(!input) return;
+    const display_name=input.value.trim();
+    if(display_name.length>120) { showNotice("El nombre no puede superar los 120 caracteres."); return; }
+    button.disabled=true;
+    const {error}=await client.from("students").update({display_name:display_name||null}).eq("id",studentId);
+    if(error) {
+      showNotice("No se ha podido guardar el nombre. Comprueba que sigues conectado como profesor.");
+      console.warn(error); button.disabled=false; return;
+    }
+    showNotice(display_name?"Nombre del alumno guardado.":"Nombre del alumno borrado.");
+    await loadTeacherReports();
   }
 
   async function setExplained(courseWordId,explained,button) {
