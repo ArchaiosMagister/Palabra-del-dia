@@ -71,7 +71,7 @@
     .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
     .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
-    footer{text-align:center;border-top:1px solid var(--line);padding:20px;color:var(--muted);font-family:"Crimson Pro",serif}
+    footer{text-align:center;border-top:1px solid var(--line);padding:28px 20px 20px;color:var(--muted);font-family:"Crimson Pro",serif}
     .hidden{display:none!important}
     @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
   </style>
@@ -103,11 +103,6 @@
         <button id="activate" class="primary" type="button">Entrar</button>
       </div>
       <p id="login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
-    </section>
-    <section id="teacher-admin" class="teacher-admin hidden">
-      <h2 class="section-title">Administración del diccionario</h2>
-      <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
-      <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
     </section>
     <div id="session-panel" class="status hidden" style="margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <span id="session-label"></span>
@@ -142,6 +137,11 @@
         <p id="teacher-login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
       </div>
     </section>
+  <section id="teacher-admin" class="teacher-admin hidden">
+    <h2 class="section-title">Administración del diccionario</h2>
+    <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
+    <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
+  </section>
 </main>
 <footer><em>Non scholae, sed vitae discimus.</em></footer>
 <script>
