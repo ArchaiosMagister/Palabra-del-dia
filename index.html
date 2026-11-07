@@ -618,7 +618,7 @@
       (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
       (e.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
       '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
-      (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
+      (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)>=n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
       '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
       '</div></article>';
     $("close-entry-dialog").addEventListener("click",()=>$("entry-dialog").close());
