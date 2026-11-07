@@ -138,6 +138,7 @@
     $("ranking").classList.toggle("hidden",tab!=="ranking");
     $("tab-dictionary").classList.toggle("active",tab==="dictionary");
     $("tab-ranking").classList.toggle("active",tab==="ranking");
+    if(tab==="ranking") loadRankings($("rank-course-select").value || selectedCourse);
   }
 
   async function loadCourses() {
@@ -266,7 +267,7 @@
     $("rank-course-select").value=courseId;
     const {data,error}=await client.from("public_rankings")
       .select("course_word_id,term,average_rating,vote_count")
-      .eq("course_id",courseId).order("average_rating",{ascending:false}).order("vote_count",{ascending:false});
+      .eq("course_id",courseId).gt("vote_count",0).order("average_rating",{ascending:false}).order("vote_count",{ascending:false});
     if(error) { $("rank-list").innerHTML='<div class="empty">No se ha podido cargar la clasificación.</div>'; return; }
     rankings=data||[];
     if(activeTab==="ranking" || selectedCourse===courseId) renderEntries();
