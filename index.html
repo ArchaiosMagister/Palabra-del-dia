@@ -37,7 +37,6 @@
     .entry-preview:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     .preview-term{display:block;font:600 25px/1.1 "Crimson Pro",Georgia,serif;font-size:0.92em;color:#713b43;margin-bottom:8px}
     .preview-term .latin-term{font-style:italic}
-    .preview-term .greek-term{font-family:"Palatino Linotype",Palatino,serif}
     .preview-text{display:block;color:var(--muted);line-height:1.45}
     .preview-more{display:block;margin-top:10px;color:var(--red);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
     .term{font-size:29px;line-height:1.1;margin:0 0 14px;font-weight:600;color:#713b43}
@@ -233,10 +232,9 @@
 
   const latinPattern = new RegExp("(^|[^\\p{L}\\p{N}])(" + "Reprehendenti filio Tito, quod etiam urinæ vectigal commentus esset, pecuniam ex prima pensione admovit ad nares, sciscitans num odore offenderetur; et illo negante|ho dimenticato le chiavi|mi sono scordato di te|herostratic fame|dimenticare|ricordare|sycophant|Herostrat|scordare|diavolo|cédule|Zettel|omnium scientiarum princeps Salmantica docet|inquit|Iesus Nazarenus Rex Iudæorum|Iesus Nazarenus Rex Judaeorum|copia, –æ|copia –æ|pellis, –is|pellicula, –æ|hospes, hospitis|mens, mentis|Quod natura non dat, Salmantica non praestat|Quod natura non dat, Salmantica non præstat|Non scholae, sed vitae discimus|Roma traditoribus non praemiat|Roma traditoribus non præmiat|Nil satis nisi optimum|Quod scripsi, scripsi|Carthago delenda est|damnatio memoriae|Pecunia non olet|damnatio memoriæ|cursus honorum|offenderetur|e lotio est|praeteritio|homo novus|Brundisium|pelliculam|præteritio|sciscitans|pellicula|commentus|candidus|hospitis|schedula|vectigal|pecuniam|coniveo|mingere|trivium|admovit|negante|hospes|scheda|pellis|mentis|Atqui|conor|scida|copia|urinæ|nares|odore|filio|prima|mens|cor|æ" + ")(?=$|[^\\p{L}\\p{N}])", "giu");
   const formatTerm = value => {
-    const plain = String(value ?? "").replace(/<\/?em>/gi, "").replace(/&lt;\/?em&gt;/gi, "");
+    const plain = String(value ?? "").replace(/(?:&amp;)*(?:&lt;|<)\/?em(?:&gt;|>)/gi, "");
     const safe = escapeHtml(plain);
-    const latin = safe.replace(latinPattern, (match, before, term) => before + '<span class="latin-term">' + term + '</span>');
-    return latin.replace(/[\u0370-\u03FF\u1F00-\u1FFF]+/g, greek => '<span class="greek-term">' + greek + '</span>');
+    return safe.replace(latinPattern, (match, before, term) => before + '<span class="latin-term">' + term + '</span>');
   };
   const formatText = value => {
     const plain = String(value ?? "").replace(/(?:&amp;)*(?:&lt;|<)\/?em(?:&gt;|>)/gi, "");
