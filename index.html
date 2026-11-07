@@ -162,6 +162,10 @@
     <p class="section-note">Clasificación histórica por curso, calculada a partir de las valoraciones recibidas.</p>
     <div id="rank-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
   </section>
+    <div id="teacher-session-panel" class="status hidden" style="max-width:530px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <span id="teacher-session-label">Sesión de profesor iniciada.</span>
+      <button id="teacher-logout" class="secondary" type="button">Cerrar sesión</button>
+    </div>
     <section id="teacher-access" class="teacher-access">
       <button id="teacher-access-toggle" class="secondary" type="button">Acceso de profesor</button>
       <div id="teacher-access-form" class="teacher-access-form hidden">
@@ -227,6 +231,7 @@
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
     $("teacher-activate").addEventListener("click", activateTeacher);
     $("logout").addEventListener("click", logout);
+    $("teacher-logout").addEventListener("click", logout);
     $("proposal-submit").addEventListener("click", submitProposal);
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
@@ -553,14 +558,9 @@
   }
 
   function updateSessionUI() {
-    const visible=!!student||isTeacher;
-    $("session-panel").classList.toggle("hidden",!visible);
-    if(visible) {
-      const roles=[];
-      if(student) roles.push("alumno");
-      if(isTeacher) roles.push("profesor");
-      $("session-label").textContent="Sesión iniciada como "+roles.join(" y ")+". Puedes cerrar sesión desde aquí.";
-    }
+    $("session-panel").classList.toggle("hidden",!student);
+    $("teacher-session-panel").classList.toggle("hidden",!isTeacher);
+    if(student) $("session-label").textContent="Sesión iniciada como alumno. Puedes cerrar sesión desde aquí.";
   }
 
   async function logout() {
