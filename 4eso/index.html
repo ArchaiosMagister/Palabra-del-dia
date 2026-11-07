@@ -19,7 +19,7 @@
     h1,h2,h3,.term,.brand{font-family:"Crimson Pro",Georgia,serif}
     h1{font-size:clamp(38px,6vw,58px);font-weight:500;letter-spacing:-.025em;margin:5px 0 0}
     .subtitle{color:var(--muted);margin:3px 0 0;font-family:"Crimson Pro",serif;font-size:18px}
-    .institution{display:block;width:max-content;max-width:100%;margin-left:auto;margin-right:auto;color:var(--red);margin:14px 0 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+    .institution{display:block;width:max-content;max-width:100%;margin-left:auto;margin-right:auto;color:var(--red);margin:14px auto 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
     .course-identification{display:block;width:max-content;max-width:100%;margin:10px auto 0;padding:5px 13px;border:1px solid var(--line);border-radius:3px;color:var(--red);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#fffaf1}
     nav{display:flex;justify-content:center;gap:8px;padding:0 0 18px}
     nav button,.tab{border:0;background:transparent;color:var(--muted);padding:9px 16px;cursor:pointer;font:600 14px "Source Sans 3";border-bottom:2px solid transparent}
@@ -392,7 +392,7 @@
       return '<article class="word-card"><h3 class="term">'+formatText(e.term)+'</h3>'+
         (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
         (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
-        (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
+        (e.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
         '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
         (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
         '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
