@@ -86,7 +86,6 @@
     </section>
     <div id="student-panel" class="status hidden" style="margin-top:22px">
       <span id="student-label"></span>
-      <button id="signout" class="secondary" type="button" style="float:right">Cerrar sesión</button>
     </div>
   </section>
   <section id="ranking" class="hidden">
@@ -105,7 +104,7 @@
   const SUPABASE_KEY = "sb_publishable_x4KEF3M2CmSXCPG6XhZ0jw_WSmd58YO";
   const COURSE_ID_2026 = "ec7e0b88-8304-4115-aa8d-fd703ac2b7ea";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  let courses = [], entries = [], rankings = [], student = null, currentUser = null;
+  let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map();
   let selectedCourse = null, activeTab = "dictionary";
 
   const $ = id => document.getElementById(id);
@@ -122,12 +121,12 @@
     $("search").addEventListener("input", renderEntries);
     $("activate").addEventListener("click", activateStudent);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
-    $("signout").addEventListener("click", async () => { await client.auth.signOut(); student=null; currentUser=null; updateStudentUI(); renderEntries(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
     if (session?.user) {
       currentUser=session.user;
       await findLinkedStudent();
+      if (student) await loadEntries();
     }
     await loadRankings(selectedCourse);
     renderEntries();
@@ -161,6 +160,12 @@
       .eq("course_id",selectedCourse).eq("explained",true);
     if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
     entries=(data||[]).filter(row=>row.words).map(row=>({...row,...row.words})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    myVotes = new Map();
+    if (student && student.course_id === selectedCourse) {
+      const {data: ownVotes, error: votesError} = await client.from("votes")
+        .select("course_word_id,rating").eq("student_id", student.id);
+      if (!votesError) (ownVotes || []).forEach(v => myVotes.set(v.course_word_id, Number(v.rating)));
+    }
     $("course-select").value=selectedCourse;
     $("course-caption").textContent="Curso académico "+selectedCourseName()+". Las fichas están disponibles para consulta.";
     renderEntries();
@@ -195,6 +200,7 @@
       if(data?.error) throw new Error(data.error);
       await findLinkedStudent();
       if(!student) throw new Error("El código se ha validado, pero no se ha podido cargar el registro del alumno. Recarga la página.");
+      await loadEntries();
       input.value=""; message.textContent="Acceso activado.";
       hideNotice(); renderEntries();
     } catch(error) {
@@ -208,7 +214,7 @@
     $("student-panel").classList.toggle("hidden",!linked);
     if(linked) {
       const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
-      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso.";
+      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso. La sesión se conserva en este navegador; no cierres sesión ni borres sus datos.";
     }
   }
 
@@ -230,7 +236,7 @@
         (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+escapeHtml(e.definition)+'</p>':'')+
         (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+escapeHtml(e.story)+'</p>':'')+
         '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
-        (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
+        (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
         '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
         '</div></article>';
     }).join("");
@@ -249,6 +255,7 @@
       showNotice("No se ha podido guardar el voto. Comprueba la conexión e inténtalo de nuevo.");
       buttons.forEach(b=>b.disabled=false); return;
     }
+    myVotes.set(courseWordId, rating);
     showNotice("Tu valoración se ha guardado. Puedes cambiarla cuando quieras.");
     await loadRankings(selectedCourse);
     renderEntries();
