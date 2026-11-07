@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title></title>
+<meta name="Generator" content="Cocoa HTML Writer">
+<style type="text/css">
+p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 17.4px '.AppleSystemUIFontMonospaced'}
+p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 17.4px '.AppleSystemUIFontMonospaced'; min-height: 20.7px}
+span.s1 {font-family: '.AppleSystemUIFontMonospaced-Regular'; font-weight: normal; font-style: normal; font-size: 17.38px}
+</style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="es"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;La Palabra del Día&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Tailwind CSS para el diseño --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Librería para generar códigos QR --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Cliente de Supabase --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-between p-6"&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="text-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h1 class="text-2xl font-light text-slate-400"&gt;Palabra del Día&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;!-- Selector de curso y año para el profesor --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="mt-2 flex gap-2 justify-center text-sm"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;select id="selectCurso" class="bg-slate-800 text-white px-2 py-1 rounded border border-slate-700"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="1ESO"&gt;1º ESO&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="2ESO"&gt;2º ESO&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="1BACH"&gt;1º Bachillerato&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;select id="selectAnio" class="bg-slate-800 text-white px-2 py-1 rounded border border-slate-700"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="2026-2027"&gt;2026-2027&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="2027-2028"&gt;2027-2028&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Contenido principal --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="pantalla-proyeccion" class="text-center max-w-2xl w-full bg-slate-800/50 p-8 rounded-2xl border border-slate-700 shadow-xl"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div id="seccion-palabra"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;h2 id="palabraDia" class="text-6xl font-bold tracking-tight text-indigo-400 mb-4"&gt;Cargando...&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;p id="definicionDia" class="text-xl text-slate-300 italic mb-8"&gt;&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="flex flex-col items-center justify-center bg-white p-4 rounded-xl w-48 mx-auto shadow-inner"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div id="qrcode"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;span class="text-slate-800 text-xs mt-2 font-semibold"&gt;¡Escanea para votar!&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;!-- Vista de votación para el móvil del alumno --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div id="seccion-votacion" class="hidden"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;h2 class="text-2xl font-bold mb-2"&gt;Valorar palabra:&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;p id="palabraVotar" class="text-3xl text-indigo-400 font-semibold mb-6"&gt;&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="flex justify-center gap-4 mb-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button onclick="votar(1)" class="w-12 h-12 bg-slate-700 hover:bg-indigo-600 rounded-full text-xl font-bold transition"&gt;1&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button onclick="votar(2)" class="w-12 h-12 bg-slate-700 hover:bg-indigo-600 rounded-full text-xl font-bold transition"&gt;2&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button onclick="votar(3)" class="w-12 h-12 bg-slate-700 hover:bg-indigo-600 rounded-full text-xl font-bold transition"&gt;3&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button onclick="votar(4)" class="w-12 h-12 bg-slate-700 hover:bg-indigo-600 rounded-full text-xl font-bold transition"&gt;4&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button onclick="votar(5)" class="w-12 h-12 bg-slate-700 hover:bg-indigo-600 rounded-full text-xl font-bold transition"&gt;5&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div id="mensajeVoto" class="text-emerald-400 font-medium hidden"&gt;¡Gracias por tu voto anónimo! 🎉&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;footer class="text-xs text-slate-500"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>Sistema de Palabras Interactivas</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/footer&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// CONFIGURACIÓN DE SUPABASE (Sustituye con tus datos)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const SUPABASE_URL = 'TU_SUPABASE_URL';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// LISTA DE PALABRAS DE TU CURSO (Puedes añadir todas las que quieras)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const listaPalabras = [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ fecha: "2026-11-09", palabra: "Inefable", definicion: "Que no se puede explicar con palabras." },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ fecha: "2026-11-10", palabra: "Melifluo", definicion: "Sonido excesivamente dulce, suave o delicado." },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ fecha: "2026-11-11", palabra: "Alba", definicion: "Primera luz del día antes de salir el sol." }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const urlParams = new URLSearchParams(window.location.search);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const palabraParam = urlParams.get('palabra');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (palabraParam) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// MODO MÓVIL (Alumno)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('seccion-palabra').classList.add('hidden');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('seccion-votacion').classList.remove('hidden');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('palabraVotar').innerText = palabraParam;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// MODO PROYECTOR (Clase)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Coger la palabra de hoy (o la primera si no coincide ninguna)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const hoy = new Date().toISOString().split('T')[0];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let actual = listaPalabras.find(p =&gt; p.fecha === hoy) || listaPalabras[0];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('palabraDia').innerText = actual.palabra;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('definicionDia').innerText = `"${actual.definicion}"`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Generar QR que apunta a esta misma página pero con parámetro de la palabra</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const linkVotacion = `${window.location.origin}${window.location.pathname}?palabra=${encodeURIComponent(actual.palabra)}`;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>new QRCode(document.getElementById("qrcode"), {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>text: linkVotacion,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>width: 150,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>height: 150</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>async function votar(puntuacion) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const curso = urlParams.get('curso') || '1ESO';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const anio = urlParams.get('anio') || '2026-2027';</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const { error } = await supabaseClient</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>.from('votos_palabras')</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>.insert([{ palabra: palabraParam, curso: curso, anio: anio, puntuacion: puntuacion }]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (!error) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.querySelector('.flex.justify-center.gap-4').classList.add('hidden');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById('mensajeVoto').classList.remove('hidden');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>alert('Hubo un error al registrar el voto.');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Ajustar enlaces del QR si el profesor cambia los desplegables de curso/año en clase</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('selectCurso').addEventListener('change', actualizarQR);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('selectAnio').addEventListener('change', actualizarQR);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function actualizarQR() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (palabraParam) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const curso = document.getElementById('selectCurso').value;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const anio = document.getElementById('selectAnio').value;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const hoy = new Date().toISOString().split('T')[0];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let actual = listaPalabras.find(p =&gt; p.fecha === hoy) || listaPalabras[0];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('qrcode').innerHTML = "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const linkVotacion = `${window.location.origin}${window.location.pathname}?palabra=${encodeURIComponent(actual.palabra)}&amp;curso=${curso}&amp;anio=${anio}`;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>new QRCode(document.getElementById("qrcode"), {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>text: linkVotacion,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>width: 150,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>height: 150</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Inicializar QR con los valores por defecto</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>actualizarQR();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
