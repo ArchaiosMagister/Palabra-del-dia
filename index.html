@@ -81,6 +81,18 @@
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
     .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
     footer{text-align:center;border-top:1px solid var(--line);padding:20px;color:var(--muted);font-family:"Crimson Pro",serif}
+    .proposal-panel{margin:24px 0;padding:22px;background:var(--paper2);border:1px solid var(--line);border-radius:5px;box-shadow:var(--shadow)}
+    .proposal-form{display:grid;gap:12px;margin-top:16px}
+    .proposal-form label,.proposal-edit label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:600}
+    .proposal-form input,.proposal-form textarea,.proposal-edit input,.proposal-edit textarea{width:100%;min-width:0;font:inherit;color:var(--ink);background:#fffdf8;border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+    .proposal-form textarea,.proposal-edit textarea{min-height:86px;resize:vertical}
+    .proposal-list,.teacher-proposal-list{display:grid;gap:10px;margin-top:16px}
+    .proposal-item,.teacher-proposal-card{padding:14px;background:#fffdf8;border:1px solid var(--line);border-radius:4px}
+    .proposal-item-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .proposal-status{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .proposal-status.approved{color:var(--green)}.proposal-status.rejected{color:var(--red)}
+    .proposal-edit{display:grid;gap:10px;margin-top:12px}
+    .proposal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .hidden{display:none!important}
     @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
   </style>
@@ -118,6 +130,21 @@
       <button id="logout" class="secondary" type="button">Cerrar sesión</button>
     </div>
     <div id="student-panel" class="hidden"><span id="student-label"></span></div>
+    <section id="student-proposals" class="proposal-panel hidden">
+      <h2 class="section-title">Proponer una palabra</h2>
+      <p class="section-note">Puedes enviar una propuesta para tu curso. Solo aparecerá en el diccionario cuando el profesor la revise y la apruebe.</p>
+      <div class="proposal-form">
+        <label>Título<input id="proposal-term" type="text" maxlength="160" placeholder="Palabra o expresión" required></label>
+        <label>Origen<textarea id="proposal-origin" maxlength="4000" placeholder="Etimología y lengua de procedencia…"></textarea></label>
+        <label>Significado<textarea id="proposal-definition" maxlength="4000" placeholder="Explicación del significado…"></textarea></label>
+        <label>Más información<textarea id="proposal-story" maxlength="12000" placeholder="Historia, curiosidades, ejemplos…"></textarea></label>
+        <div><button id="proposal-submit" class="primary" type="button">Enviar propuesta</button><span id="proposal-message" class="small" style="margin-left:10px" aria-live="polite"></span></div>
+      </div>
+      <div class="teacher-report" style="margin-top:22px">
+        <h3 class="admin-term">Mis propuestas</h3>
+        <div id="student-proposal-list" class="proposal-list"><div class="empty">Todavía no has enviado propuestas.</div></div>
+      </div>
+    </section>
     <div class="toolbar" style="margin-top:38px">
       <select id="course-select" aria-label="Curso académico"></select>
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
@@ -151,6 +178,11 @@
     <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
     <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
     <section class="teacher-report">
+    <section class="teacher-report" id="teacher-proposals-section">
+      <h2 class="section-title">Propuestas de los alumnos</h2>
+      <p class="section-note">Revisa y, si procede, corrige cada ficha antes de aprobarla. Las aprobadas se incorporan al curso como pendientes de explicar.</p>
+      <div id="teacher-proposal-list" class="teacher-proposal-list"><div class="empty">Cargando propuestas…</div></div>
+    </section>
       <h2 class="section-title">Alumnos y votaciones</h2>
       <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
       <h3 class="admin-term">Identificación de alumnos</h3>
@@ -186,7 +218,7 @@
   async function init() {
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
-    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); } });
+    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
@@ -195,6 +227,7 @@
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
     $("teacher-activate").addEventListener("click", activateTeacher);
     $("logout").addEventListener("click", logout);
+    $("proposal-submit").addEventListener("click", submitProposal);
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
@@ -202,8 +235,8 @@
       currentUser=session.user;
       await findLinkedStudent();
       await findLinkedTeacher();
-      if (student) await loadEntries();
-      if (isTeacher) { await loadAdminEntries(); await loadTeacherReports(); }
+      if (student) { await loadEntries(); await loadStudentProposals(); }
+      if (isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); }
     }
     await loadRankings(selectedCourse);
     renderEntries();
@@ -294,6 +327,7 @@
       input.value=""; message.textContent="Acceso de profesor activado.";
       await loadAdminEntries();
       await loadTeacherReports();
+      await loadTeacherProposals();
       hideNotice();
     } catch(error) {
       message.textContent=error.message||"Se ha producido un error.";
@@ -375,6 +409,73 @@
     }).join('');
   }
 
+  function proposalStatus(status) {
+    if(status==="approved") return '<span class="proposal-status approved">Aprobada</span>';
+    if(status==="rejected") return '<span class="proposal-status rejected">Rechazada</span>';
+    return '<span class="proposal-status">Pendiente de revisión</span>';
+  }
+
+  async function loadStudentProposals() {
+    if(!student) return;
+    const box=$("student-proposal-list");
+    box.innerHTML='<div class="empty">Cargando tus propuestas…</div>';
+    const {data,error}=await client.from("word_proposals").select("id,term,status,created_at")
+      .eq("student_id",student.id).order("created_at",{ascending:false});
+    if(error) { box.innerHTML='<div class="empty">No se han podido cargar tus propuestas.</div>'; console.warn(error); return; }
+    const rows=data||[];
+    if(!rows.length) { box.innerHTML='<div class="empty">Todavía no has enviado propuestas.</div>'; return; }
+    box.innerHTML=rows.map(p=>'<article class="proposal-item"><div class="proposal-item-head"><strong class="admin-term">'+formatText(p.term)+'</strong>'+proposalStatus(p.status)+'</div><p class="small">Enviada el '+new Date(p.created_at).toLocaleDateString("es-ES")+'</p></article>').join("");
+  }
+
+  async function submitProposal() {
+    if(!student || student.course_id!==selectedCourse) return;
+    const term=$("proposal-term").value.trim(), message=$("proposal-message"), button=$("proposal-submit");
+    if(!term) { message.textContent="Escribe un título para la propuesta."; $("proposal-term").focus(); return; }
+    button.disabled=true; message.textContent="Enviando…";
+    const payload={course_id:student.course_id,student_id:student.id,term,origin:$("proposal-origin").value.trim(),definition:$("proposal-definition").value.trim(),story:$("proposal-story").value.trim()};
+    const {error}=await client.from("word_proposals").insert(payload);
+    if(error) { message.textContent="No se ha podido enviar. Comprueba la conexión e inténtalo de nuevo."; console.warn(error); button.disabled=false; return; }
+    ["proposal-term","proposal-origin","proposal-definition","proposal-story"].forEach(id=>$(id).value="");
+    message.textContent="Propuesta enviada. Queda pendiente de revisión.";
+    await loadStudentProposals(); button.disabled=false;
+  }
+
+  async function loadTeacherProposals() {
+    if(!isTeacher) return;
+    const box=$("teacher-proposal-list");
+    box.innerHTML='<div class="empty">Cargando propuestas…</div>';
+    const {data,error}=await client.from("word_proposals").select("id,student_id,term,origin,definition,story,created_at")
+      .eq("course_id",selectedCourse).eq("status","pending").order("created_at",{ascending:true});
+    if(error) { box.innerHTML='<div class="empty">No se han podido cargar las propuestas.</div>'; console.warn(error); return; }
+    const rows=data||[];
+    if(!rows.length) { box.innerHTML='<div class="empty">No hay propuestas pendientes para este curso.</div>'; return; }
+    const ids=[...new Set(rows.map(p=>p.student_id))];
+    const {data:studentsData,error:studentsError}=await client.from("students").select("id,display_name").in("id",ids);
+    if(studentsError) console.warn(studentsError);
+    const names=new Map((studentsData||[]).map(s=>[s.id,(s.display_name||"Nombre no indicado").trim()]));
+    box.innerHTML=rows.map(p=>'<article class="teacher-proposal-card" data-proposal-card="'+escapeHtml(p.id)+'">'+
+      '<div class="proposal-item-head"><strong class="admin-term">'+formatText(p.term)+'</strong><span class="small">'+escapeHtml(names.get(p.student_id)||"Nombre no indicado")+' · '+new Date(p.created_at).toLocaleDateString("es-ES")+'</span></div>'+
+      '<div class="proposal-edit"><label>Título<input data-proposal-field="term" maxlength="160" value="'+escapeHtml(p.term)+'"></label>'+
+      '<label>Origen<textarea data-proposal-field="origin" maxlength="4000">'+escapeHtml(p.origin||"")+'</textarea></label>'+
+      '<label>Significado<textarea data-proposal-field="definition" maxlength="4000">'+escapeHtml(p.definition||"")+'</textarea></label>'+
+      '<label>Más información<textarea data-proposal-field="story" maxlength="12000">'+escapeHtml(p.story||"")+'</textarea></label></div>'+
+      '<div class="proposal-actions"><button type="button" class="primary" data-review-proposal="approved">Aprobar e incorporar</button><button type="button" class="secondary" data-review-proposal="rejected">Rechazar</button></div></article>').join("");
+    box.querySelectorAll("[data-review-proposal]").forEach(btn=>btn.addEventListener("click",()=>reviewProposal(btn.closest("[data-proposal-card]").dataset.proposalCard,btn.dataset.reviewProposal,btn)));
+  }
+
+  async function reviewProposal(proposalId,decision,button) {
+    if(!isTeacher) return;
+    const card=button.closest("[data-proposal-card]"), fields=card.querySelectorAll("[data-proposal-field]"), values={};
+    fields.forEach(field=>values[field.dataset.proposalField]=field.value.trim());
+    if(decision==="approved" && !values.term) { showNotice("La ficha necesita un título."); return; }
+    const buttons=[...card.querySelectorAll("button")]; buttons.forEach(b=>b.disabled=true);
+    const {error}=await client.rpc("review_word_proposal",{p_proposal_id:proposalId,p_decision:decision,p_term:decision==="approved"?values.term:null,p_origin:decision==="approved"?values.origin:null,p_definition:decision==="approved"?values.definition:null,p_story:decision==="approved"?values.story:null});
+    if(error) { showNotice(error.message||"No se ha podido revisar la propuesta."); console.warn(error); buttons.forEach(b=>b.disabled=false); return; }
+    showNotice(decision==="approved"?"Propuesta aprobada e incorporada al diccionario como pendiente de explicar.":"Propuesta rechazada.");
+    await loadTeacherProposals();
+    if(decision==="approved") { await loadAdminEntries(); await loadTeacherReports(); }
+  }
+
   async function saveStudentName(studentId,button) {
     if(!isTeacher) return;
     const input=$("teacher-students").querySelector('input[data-student-name="'+studentId+'"]');
@@ -431,6 +532,7 @@
       await findLinkedStudent();
       if(!student) throw new Error("El código se ha validado, pero no se ha podido cargar el registro del alumno. Recarga la página.");
       await loadEntries();
+      await loadStudentProposals();
       input.value=""; message.textContent="Acceso activado.";
       hideNotice(); renderEntries();
     } catch(error) {
@@ -442,6 +544,7 @@
     const linked=!!student;
     $("login-panel").classList.toggle("hidden",linked);
     $("student-panel").classList.toggle("hidden",!linked);
+    $("student-proposals").classList.toggle("hidden",!linked || student.course_id!==selectedCourse);
     if(linked) {
       const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
       $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso.";
