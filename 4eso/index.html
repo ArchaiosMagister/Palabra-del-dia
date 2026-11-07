@@ -239,7 +239,7 @@
     return latin.replace(/[\u0370-\u03FF\u1F00-\u1FFF]+/g, greek => '<span class="greek-term">' + greek + '</span>');
   };
   const formatText = value => {
-    const plain = String(value ?? "").replace(/<\/?em>/gi, "");
+    const plain = String(value ?? "").replace(/(?:&amp;)*(?:&lt;|<)\/?em(?:&gt;|>)/gi, "");
     const safe = escapeHtml(plain);
     return safe.replace(latinPattern, (match, before, latin) => before + "<em>" + latin + "</em>");
   };
