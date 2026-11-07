@@ -84,8 +84,10 @@
     .admin-state{display:flex;align-items:center;gap:10px}
     .admin-state button{box-sizing:border-box;min-width:166px;min-height:40px;padding:10px 14px;font:600 14px "Source Sans 3";white-space:nowrap}
     .admin-state .small{min-width:76px;text-align:right}
-    .admin-state button.explained{background:var(--green);color:#fff;border-color:var(--green)}
-    .admin-state button.explained:hover{background:#566b50;border-color:#566b50}
+    .admin-state button.mark-explained{background:#527a4b;color:#fff;border-color:#527a4b}
+    .admin-state button.mark-explained:hover{background:#3f6339;border-color:#3f6339}
+    .admin-state button.mark-pending{background:#b7791f;color:#fff;border-color:#b7791f}
+    .admin-state button.mark-pending:hover{background:#925f16;border-color:#925f16}
     @media(max-width:560px){.admin-row{align-items:flex-start;flex-direction:column}.admin-state{width:100%;justify-content:space-between}.admin-state button{flex:1;min-width:0}}
     .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
@@ -378,7 +380,7 @@
     $("admin-list").innerHTML=rows.map(r=>
       '<div class="admin-row"><span class="admin-term">'+formatText(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
-      '<button type="button" class="'+(r.explained?'secondary explained':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
+      '<button type="button" class="'+(r.explained?'mark-pending':'mark-explained')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
       (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
     ).join("");
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
