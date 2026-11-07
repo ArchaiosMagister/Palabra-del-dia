@@ -43,6 +43,15 @@
     .primary{background:var(--red);color:white;border:1px solid var(--red);border-radius:4px;padding:10px 17px;font:600 14px "Source Sans 3";cursor:pointer}
     .primary:hover{background:#6e3028}.secondary{background:transparent;border:1px solid var(--line);padding:8px 12px;border-radius:4px;cursor:pointer;color:var(--muted)}
     .rank-list{background:var(--paper2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+    .teacher-access{max-width:530px;margin:12px auto 0;text-align:center}
+    .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
+    .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
+    .admin-list{display:grid;gap:8px}
+    .admin-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--line);background:#fffdf8}
+    .admin-term{font-family:"Crimson Pro",serif;font-size:19px}
+    .admin-state{display:flex;align-items:center;gap:10px}
+    .admin-state .small{min-width:76px;text-align:right}
+    @media(max-width:560px){.admin-row{align-items:flex-start;flex-direction:column}.admin-state{width:100%;justify-content:space-between}.admin-state button{flex:1}}
     .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
     .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
@@ -77,6 +86,22 @@
       </div>
       <p id="login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
     </section>
+    <section id="teacher-access" class="teacher-access">
+      <button id="teacher-access-toggle" class="secondary" type="button">Acceso de profesor</button>
+      <div id="teacher-access-form" class="teacher-access-form hidden">
+        <p class="small">Acceso privado para administrar las palabras explicadas en clase.</p>
+        <div class="login-row">
+          <input id="teacher-code" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" placeholder="MAGISTER-…" aria-label="Código de profesor">
+          <button id="teacher-activate" class="primary" type="button">Entrar</button>
+        </div>
+        <p id="teacher-login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
+      </div>
+    </section>
+    <section id="teacher-admin" class="teacher-admin hidden">
+      <h2 class="section-title">Administración del diccionario</h2>
+      <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
+      <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
+    </section>
     <div id="student-panel" class="status hidden" style="margin-top:22px">
       <span id="student-label"></span>
     </div>
@@ -104,7 +129,7 @@
   const SUPABASE_KEY = "sb_publishable_x4KEF3M2CmSXCPG6XhZ0jw_WSmd58YO";
   const COURSE_ID_2026 = "ec7e0b88-8304-4115-aa8d-fd703ac2b7ea";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map();
+  let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map(), isTeacher = false;
   let selectedCourse = null, activeTab = "dictionary";
 
   const $ = id => document.getElementById(id);
@@ -116,17 +141,22 @@
   async function init() {
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
-    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); });
+    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) await loadAdminEntries(); });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
     $("activate").addEventListener("click", activateStudent);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
+    $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
+    $("teacher-activate").addEventListener("click", activateTeacher);
+    $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
     if (session?.user) {
       currentUser=session.user;
       await findLinkedStudent();
+      await findLinkedTeacher();
       if (student) await loadEntries();
+      if (isTeacher) await loadAdminEntries();
     }
     await loadRankings(selectedCourse);
     renderEntries();
@@ -177,6 +207,85 @@
     if(error) { console.warn(error); return; }
     student=data||null;
     updateStudentUI();
+  }
+
+  async function findLinkedTeacher() {
+    const {data,error}=await client.from("teacher_admins").select("auth_user_id").maybeSingle();
+    if(error) { console.warn("No se ha podido comprobar el acceso de profesor:",error); return; }
+    isTeacher=!!data;
+    updateTeacherUI();
+  }
+
+  function updateTeacherUI() {
+    $("teacher-access").classList.toggle("hidden",isTeacher);
+    $("teacher-admin").classList.toggle("hidden",!isTeacher);
+  }
+
+  async function activateTeacher() {
+    const input=$("teacher-code"), message=$("teacher-login-message"), button=$("teacher-activate");
+    const code=input.value.trim().normalize("NFKC").toUpperCase();
+    if(code.length<20) { message.textContent="Escribe el código completo."; return; }
+    button.disabled=true; message.textContent="Comprobando el acceso…";
+    try {
+      let {data:{session}}=await client.auth.getSession();
+      if(!session) {
+        const {data,error}=await client.auth.signInAnonymously();
+        if(error) throw new Error("No se ha podido iniciar una sesión segura. Comprueba que el acceso anónimo esté activado en Supabase.");
+        session=data.session;
+      }
+      currentUser=session.user;
+      const {data,error}=await client.functions.invoke("claim-teacher-code",{body:{code}});
+      if(error) {
+        let detail=data?.error;
+        try { const ctx=error.context; if(ctx?.json) detail=(await ctx.json()).error||detail; } catch {}
+        throw new Error(detail||"No se ha podido validar el código de profesor.");
+      }
+      if(data?.error) throw new Error(data.error);
+      await findLinkedTeacher();
+      if(!isTeacher) throw new Error("El código se ha validado, pero no se ha podido activar la administración. Recarga la página.");
+      input.value=""; message.textContent="Acceso de profesor activado.";
+      await loadAdminEntries();
+      hideNotice();
+    } catch(error) {
+      message.textContent=error.message||"Se ha producido un error.";
+    } finally { button.disabled=false; }
+  }
+
+  async function loadAdminEntries() {
+    if(!isTeacher) return;
+    $("admin-list").innerHTML='<div class="empty">Cargando palabras…</div>';
+    const {data,error}=await client.from("course_words")
+      .select("id,explained,words(term)")
+      .eq("course_id",selectedCourse);
+    if(error) { $("admin-list").innerHTML='<div class="empty">No se ha podido cargar la administración.</div>'; return; }
+    const rows=(data||[]).filter(r=>r.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
+    if(!rows.length) { $("admin-list").innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
+    $("admin-list").innerHTML=rows.map(r=>
+      '<div class="admin-row"><span class="admin-term">'+escapeHtml(r.words.term)+'</span>'+
+      '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
+      '<button type="button" class="'+(r.explained?'secondary':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
+      (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
+    ).join("");
+    $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
+      btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
+    );
+  }
+
+  async function setExplained(courseWordId,explained,button) {
+    if(!isTeacher) return;
+    button.disabled=true;
+    const {error}=await client.from("course_words")
+      .update({explained,explained_at:explained?new Date().toISOString():null})
+      .eq("id",courseWordId);
+    if(error) {
+      showNotice("No se ha podido actualizar el estado. El acceso de profesor debe estar activo.");
+      button.disabled=false;
+      return;
+    }
+    showNotice(explained?"Palabra marcada como explicada.":"Palabra marcada como pendiente.");
+    await loadAdminEntries();
+    await loadEntries();
+    await loadRankings(selectedCourse);
   }
 
   async function activateStudent() {
