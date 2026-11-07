@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4efe5">
+  <title>Palabra del día · Diccionario clásico · 4.º ESO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--paper:#f4efe5;--paper2:#fbf8f1;--ink:#28271f;--muted:#777064;--line:#d9d0c0;--red:#873d32;--gold:#ad8542;--green:#526b57;--shadow:0 12px 35px #342b1c12}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",sans-serif;font-size:16px}
+    header{border-bottom:1px solid var(--line);background:#f8f4ec}
+    .wrap{max-width:1080px;margin:auto;padding:0 24px}
+    .masthead{padding:34px 0 22px;text-align:center}
+    .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);font-weight:700}
+    h1,h2,h3,.term,.brand{font-family:"Crimson Pro",Georgia,serif}
+    h1{font-size:clamp(38px,6vw,58px);font-weight:500;letter-spacing:-.025em;margin:5px 0 0}
+    .subtitle{color:var(--muted);margin:3px 0 0;font-family:"Crimson Pro",serif;font-size:18px}
+    .institution{display:inline-block;color:var(--red);margin:14px 0 0;padding:8px 18px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);font-family:"Crimson Pro",Georgia,serif;font-size:19px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+    .course-identification{display:inline-block;margin:9px 0 0;padding:5px 13px;border:1px solid var(--line);border-radius:3px;color:var(--red);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#fffaf1}
+    nav{display:flex;justify-content:center;gap:8px;padding:0 0 18px}
+    nav button,.tab{border:0;background:transparent;color:var(--muted);padding:9px 16px;cursor:pointer;font:600 14px "Source Sans 3";border-bottom:2px solid transparent}
+    nav button.active{color:var(--red);border-color:var(--red)}
+    main{padding:28px 0 70px}
+    .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
+    select,input{font:inherit;color:var(--ink);background:var(--paper2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+    select{min-width:160px}input{min-width:230px;flex:1}
+    .section-title{font-family:"Crimson Pro",serif;font-size:28px;font-weight:500;margin:0 0 5px}
+    .section-note{color:var(--muted);margin:0 0 20px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}
+    .word-card{background:var(--paper2);border:1px solid var(--line);border-radius:5px;padding:22px 23px;box-shadow:var(--shadow)}
+    .term{font-size:29px;line-height:1.1;margin:0 0 14px;font-weight:600;color:#332f27}
+    .entry-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:700;margin:16px 0 4px}
+    .entry-text{line-height:1.55;margin:0;white-space:pre-wrap}
+    .vote-area{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .stars{display:flex;gap:3px}.stars button{border:0;background:transparent;color:#c9c0af;font-size:27px;line-height:1;padding:2px;cursor:pointer}.stars button.chosen,.stars button:hover{color:var(--gold)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .small{font-size:13px;color:var(--muted)}.status{padding:12px 15px;background:#eee7d9;border-left:3px solid var(--gold);margin:0 0 18px;color:#514a3d}
+    .login{max-width:530px;margin:26px auto 0;padding:25px;background:var(--paper2);border:1px solid var(--line);box-shadow:var(--shadow)}
+    .login h2{font-size:27px;font-weight:500;margin:0 0 7px}.login p{color:var(--muted);margin:0 0 14px}
+    .login-row{display:flex;gap:9px}.login-row input{min-width:0}
+    .primary{background:var(--red);color:white;border:1px solid var(--red);border-radius:4px;padding:10px 17px;font:600 14px "Source Sans 3";cursor:pointer}
+    .primary:hover{background:#6e3028}.secondary{background:transparent;border:1px solid var(--line);padding:8px 12px;border-radius:4px;cursor:pointer;color:var(--muted)}
+    .rank-list{background:var(--paper2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+    .teacher-access{max-width:530px;margin:12px auto 0;text-align:center}
+    .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
+    .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
+    .admin-list{display:grid;gap:8px}
+    .admin-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--line);background:#fffdf8}
+    .admin-term{font-family:"Crimson Pro",serif;font-size:19px}
+    .admin-state{display:flex;align-items:center;gap:10px}
+    .admin-state .small{min-width:76px;text-align:right}
+    @media(max-width:560px){.admin-row{align-items:flex-start;flex-direction:column}.admin-state{width:100%;justify-content:space-between}.admin-state button{flex:1}}
+    .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
+    .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
+    .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
+    footer{text-align:center;border-top:1px solid var(--line);padding:20px;color:var(--muted);font-family:"Crimson Pro",serif}
+    .hidden{display:none!important}
+    @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="masthead">
+      <div class="eyebrow">Latín · Griego · Etimología</div>
+      <h1>Palabra del día</h1>
+      <p class="subtitle">Un pequeño diccionario de nuestras clases</p>
+      <p class="institution">IES Veles e Vents · Torrent</p>
+      <p class="course-identification">4.º de ESO · Curso 2026-2027</p>
+    </div>
+    <nav aria-label="Secciones">
+      <button id="tab-dictionary" class="active" type="button">Diccionario</button>
+      <button id="tab-ranking" type="button">Clasificación</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  <div id="notice" class="status hidden" role="status"></div>
+  <section id="dictionary">
+    <section id="login-panel" class="login">
+      <h2>Acceso de alumnos</h2>
+      <p>Introduce tu código personal para activar la votación. Tu código solo se utiliza para vincular esta sesión con tu plaza de alumno.</p>
+      <div class="login-row">
+        <input id="invite-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="LAT-…">
+        <button id="activate" class="primary" type="button">Entrar</button>
+      </div>
+      <p id="login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
+    </section>
+    <section id="teacher-access" class="teacher-access">
+      <button id="teacher-access-toggle" class="secondary" type="button">Acceso de profesor</button>
+      <div id="teacher-access-form" class="teacher-access-form hidden">
+        <p class="small">Acceso privado para administrar las palabras explicadas en clase.</p>
+        <div class="login-row">
+          <input id="teacher-code" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" placeholder="MAGISTER-…" aria-label="Código de profesor">
+          <button id="teacher-activate" class="primary" type="button">Entrar</button>
+        </div>
+        <p id="teacher-login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
+      </div>
+    </section>
+    <section id="teacher-admin" class="teacher-admin hidden">
+      <h2 class="section-title">Administración del diccionario</h2>
+      <p class="section-note">Marca las palabras que ya has explicado. Los cambios se aplican inmediatamente al diccionario público.</p>
+      <div id="admin-list" class="admin-list"><div class="empty">Cargando palabras…</div></div>
+    </section>
+    <div id="student-panel" class="status hidden" style="margin-top:22px">
+      <span id="student-label"></span>
+    </div>
+    <div class="toolbar" style="margin-top:38px">
+      <select id="course-select" aria-label="Curso académico"></select>
+      <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
+    </div>
+    <h2 class="section-title">Las palabras explicadas</h2>
+    <p class="section-note" id="course-caption">Consulta las fichas del curso.</p>
+    <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
+  </section>
+  <section id="ranking" class="hidden">
+    <div class="toolbar">
+      <select id="rank-course-select" aria-label="Curso del ranking"></select>
+    </div>
+    <h2 class="section-title">Las más valoradas</h2>
+    <p class="section-note">Clasificación histórica por curso, calculada a partir de las valoraciones recibidas.</p>
+    <div id="rank-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
+  </section>
+</main>
+<footer>Non scholae, sed vitae discimus.</footer>
+<script>
+(() => {
+  const SUPABASE_URL = "https://rzjemisvaaqpnvvgfntl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_x4KEF3M2CmSXCPG6XhZ0jw_WSmd58YO";
+  const COURSE_ID_2026 = "ec7e0b88-8304-4115-aa8d-fd703ac2b7ea";
+  const SITE_COURSE_ID = "4e9c637b-96af-4385-b9fd-812d192c75ec";
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map(), isTeacher = false;
+  let selectedCourse = null, activeTab = "dictionary";
+
+  const $ = id => document.getElementById(id);
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const showNotice = message => { $("notice").textContent = message; $("notice").classList.remove("hidden"); };
+  const hideNotice = () => $("notice").classList.add("hidden");
+  const selectedCourseName = () => courses.find(c => c.id === selectedCourse)?.name || "";
+
+  async function init() {
+    $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
+    $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
+    $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(isTeacher) await loadAdminEntries(); });
+    $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
+    $("search").addEventListener("input", renderEntries);
+    $("activate").addEventListener("click", activateStudent);
+    $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
+    $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
+    $("teacher-activate").addEventListener("click", activateTeacher);
+    $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
+    await loadCourses();
+    const {data:{session}} = await client.auth.getSession();
+    if (session?.user) {
+      currentUser=session.user;
+      await findLinkedStudent();
+      await findLinkedTeacher();
+      if (student) await loadEntries();
+      if (isTeacher) await loadAdminEntries();
+    }
+    await loadRankings(selectedCourse);
+    renderEntries();
+  }
+
+  function switchTab(tab) {
+    activeTab=tab;
+    $("dictionary").classList.toggle("hidden",tab!=="dictionary");
+    $("ranking").classList.toggle("hidden",tab!=="ranking");
+    $("tab-dictionary").classList.toggle("active",tab==="dictionary");
+    $("tab-ranking").classList.toggle("active",tab==="ranking");
+    if(tab==="ranking") loadRankings($("rank-course-select").value || selectedCourse);
+  }
+
+  async function loadCourses() {
+    const {data,error}=await client.from("courses").select("id,name,is_active").eq("id",SITE_COURSE_ID).order("name",{ascending:false});
+    if(error) throw error;
+    courses=data||[];
+    if(!courses.length) throw new Error("Todavía no hay cursos publicados.");
+    selectedCourse=SITE_COURSE_ID;
+    for(const id of ["course-select","rank-course-select"]) {
+      $(id).innerHTML=courses.map(c=>'<option value="'+escapeHtml(c.id)+'">'+escapeHtml(c.name)+'</option>').join("");
+      $(id).value=selectedCourse;
+    }
+    await loadEntries();
+  }
+
+  async function loadEntries() {
+    $("cards").innerHTML='<div class="empty">Cargando las fichas…</div>';
+    const {data,error}=await client.from("course_words")
+      .select("id,course_id,words(id,term,origin,definition,story)")
+      .eq("course_id",selectedCourse).eq("explained",true);
+    if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
+    entries=(data||[]).filter(row=>row.words).map(row=>({...row.words,...row})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    myVotes = new Map();
+    if (student && student.course_id === selectedCourse) {
+      const {data: ownVotes, error: votesError} = await client.from("votes")
+        .select("course_word_id,rating").eq("student_id", student.id);
+      if (!votesError) (ownVotes || []).forEach(v => myVotes.set(v.course_word_id, Number(v.rating)));
+    }
+    $("course-select").value=selectedCourse;
+    $("course-caption").textContent="Curso académico "+selectedCourseName()+". Las fichas están disponibles para consulta.";
+    renderEntries();
+  }
+
+  async function findLinkedStudent() {
+    const {data,error}=await client.from("students").select("id,course_id").maybeSingle();
+    if(error) { console.warn(error); return; }
+    student=data||null;
+    updateStudentUI();
+  }
+
+  async function findLinkedTeacher() {
+    const {data,error}=await client.from("teacher_admins").select("auth_user_id").maybeSingle();
+    if(error) { console.warn("No se ha podido comprobar el acceso de profesor:",error); return; }
+    isTeacher=!!data;
+    updateTeacherUI();
+  }
+
+  function updateTeacherUI() {
+    $("teacher-access").classList.toggle("hidden",isTeacher);
+    $("teacher-admin").classList.toggle("hidden",!isTeacher);
+  }
+
+  async function activateTeacher() {
+    const input=$("teacher-code"), message=$("teacher-login-message"), button=$("teacher-activate");
+    const code=input.value.trim().normalize("NFKC").toUpperCase();
+    if(code.length<20) { message.textContent="Escribe el código completo."; return; }
+    button.disabled=true; message.textContent="Comprobando el acceso…";
+    try {
+      let {data:{session}}=await client.auth.getSession();
+      if(!session) {
+        const {data,error}=await client.auth.signInAnonymously();
+        if(error) throw new Error("No se ha podido iniciar una sesión segura. Comprueba que el acceso anónimo esté activado en Supabase.");
+        session=data.session;
+      }
+      currentUser=session.user;
+      const {data,error}=await client.functions.invoke("claim-teacher-code",{body:{code}});
+      if(error) {
+        let detail=data?.error;
+        try { const ctx=error.context; if(ctx?.json) detail=(await ctx.json()).error||detail; } catch {}
+        throw new Error(detail||"No se ha podido validar el código de profesor.");
+      }
+      if(data?.error) throw new Error(data.error);
+      await findLinkedTeacher();
+      if(!isTeacher) throw new Error("El código se ha validado, pero no se ha podido activar la administración. Recarga la página.");
+      input.value=""; message.textContent="Acceso de profesor activado.";
+      await loadAdminEntries();
+      hideNotice();
+    } catch(error) {
+      message.textContent=error.message||"Se ha producido un error.";
+    } finally { button.disabled=false; }
+  }
+
+  async function loadAdminEntries() {
+    if(!isTeacher) return;
+    $("admin-list").innerHTML='<div class="empty">Cargando palabras…</div>';
+    const {data,error}=await client.from("course_words")
+      .select("id,explained,words(term)")
+      .eq("course_id",selectedCourse);
+    if(error) { $("admin-list").innerHTML='<div class="empty">No se ha podido cargar la administración.</div>'; return; }
+    const rows=(data||[]).filter(r=>r.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
+    if(!rows.length) { $("admin-list").innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
+    $("admin-list").innerHTML=rows.map(r=>
+      '<div class="admin-row"><span class="admin-term">'+escapeHtml(r.words.term)+'</span>'+
+      '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
+      '<button type="button" class="'+(r.explained?'secondary':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
+      (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
+    ).join("");
+    $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
+      btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
+    );
+  }
+
+  async function setExplained(courseWordId,explained,button) {
+    if(!isTeacher) return;
+    button.disabled=true;
+    const {error}=await client.from("course_words")
+      .update({explained,explained_at:explained?new Date().toISOString():null})
+      .eq("id",courseWordId);
+    if(error) {
+      showNotice("No se ha podido actualizar el estado. El acceso de profesor debe estar activo.");
+      button.disabled=false;
+      return;
+    }
+    showNotice(explained?"Palabra marcada como explicada.":"Palabra marcada como pendiente.");
+    await loadAdminEntries();
+    await loadEntries();
+    await loadRankings(selectedCourse);
+  }
+
+  async function activateStudent() {
+    const input=$("invite-code"), message=$("login-message"), button=$("activate");
+    const code=input.value.trim().normalize("NFKC").toUpperCase();
+    if(code.length<8) { message.textContent="Escribe el código completo."; return; }
+    button.disabled=true; message.textContent="Comprobando el código…";
+    try {
+      let {data:{session}}=await client.auth.getSession();
+      if(!session) {
+        const {data,error}=await client.auth.signInAnonymously();
+        if(error) throw new Error("No se ha podido iniciar la sesión anónima. Comprueba que el acceso anónimo esté activado en Supabase (Authentication → Sign In / Providers → Anonymous Sign-Ins).");
+        session=data.session;
+      }
+      currentUser=session.user;
+      const {data,error}=await client.functions.invoke("claim-student-code",{body:{code}});
+      if(error) {
+        let detail=data?.error;
+        try { const ctx=error.context; if(ctx?.json) detail=(await ctx.json()).error||detail; } catch {}
+        throw new Error(detail||"No se ha podido validar el código.");
+      }
+      if(data?.error) throw new Error(data.error);
+      await findLinkedStudent();
+      if(!student) throw new Error("El código se ha validado, pero no se ha podido cargar el registro del alumno. Recarga la página.");
+      await loadEntries();
+      input.value=""; message.textContent="Acceso activado.";
+      hideNotice(); renderEntries();
+    } catch(error) {
+      message.textContent=error.message||"Se ha producido un error.";
+    } finally { button.disabled=false; }
+  }
+
+  function updateStudentUI() {
+    const linked=!!student;
+    $("login-panel").classList.toggle("hidden",linked);
+    $("student-panel").classList.toggle("hidden",!linked);
+    if(linked) {
+      const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
+      $("student-label").textContent="Sesión de alumno activada · "+ownName+". Puedes votar únicamente en ese curso. La sesión se conserva en este navegador; no cierres sesión ni borres sus datos.";
+    }
+  }
+
+  function ratingFor(entry) {
+    const row=rankings.find(r=>r.course_word_id===entry.id);
+    return row ? Number(row.average_rating) : null;
+  }
+
+  function renderEntries() {
+    const query=$("search").value.trim().toLocaleLowerCase("es");
+    const visible=entries.filter(e=>[e.term,e.origin,e.definition,e.story].some(v=>(v||"").toLocaleLowerCase("es").includes(query)));
+    if(!visible.length) { $("cards").innerHTML='<div class="empty">No hay fichas que coincidan con la búsqueda.</div>'; return; }
+    $("cards").innerHTML=visible.map(e=>{
+      const ownCourse=student && student.course_id===selectedCourse;
+      const average=ratingFor(e);
+      const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
+      return '<article class="word-card"><h3 class="term">'+escapeHtml(e.term)+'</h3>'+
+        (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+escapeHtml(e.origin)+'</p>':'')+
+        (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+escapeHtml(e.definition)+'</p>':'')+
+        (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+escapeHtml(e.story)+'</p>':'')+
+        '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
+        (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)===n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
+        '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
+        '</div></article>';
+    }).join("");
+    $("cards").querySelectorAll(".stars button").forEach(btn=>btn.addEventListener("click",()=>vote(btn.dataset.entry,Number(btn.dataset.rating),btn)));
+  }
+
+  async function vote(courseWordId,rating,button) {
+    if(!student || student.course_id!==selectedCourse) return;
+    const buttons=[...button.parentElement.querySelectorAll("button")];
+    buttons.forEach(b=>b.disabled=true);
+    const {error}=await client.from("votes").upsert(
+      {student_id:student.id,course_word_id:courseWordId,rating},
+      {onConflict:"student_id,course_word_id"}
+    );
+    if(error) {
+      showNotice("No se ha podido guardar el voto. Comprueba la conexión e inténtalo de nuevo.");
+      buttons.forEach(b=>b.disabled=false); return;
+    }
+    myVotes.set(courseWordId, rating);
+    showNotice("Tu valoración se ha guardado. Puedes cambiarla cuando quieras.");
+    await loadRankings(selectedCourse);
+    renderEntries();
+  }
+
+  async function loadRankings(courseId) {
+    if(!courseId) return;
+    $("rank-course-select").value=courseId;
+    const {data,error}=await client.from("public_rankings")
+      .select("course_word_id,term,average_rating,vote_count")
+      .eq("course_id",courseId).gt("vote_count",0).order("average_rating",{ascending:false}).order("vote_count",{ascending:false});
+    if(error) { $("rank-list").innerHTML='<div class="empty">No se ha podido cargar la clasificación.</div>'; return; }
+    rankings=data||[];
+    if(activeTab==="ranking" || selectedCourse===courseId) renderEntries();
+    if(!rankings.length) { $("rank-list").innerHTML='<div class="empty">Todavía no hay valoraciones para este curso.</div>'; return; }
+    $("rank-list").innerHTML=rankings.map((r,i)=>
+      '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+escapeHtml(r.term)+'</div>'+
+      '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
+      '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
+    ).join("");
+  }
+
+  init().catch(error=>{console.error(error);showNotice(error.message||"No se ha podido iniciar la aplicación.");});
+})();
+</script>
+</body>
+</html>
