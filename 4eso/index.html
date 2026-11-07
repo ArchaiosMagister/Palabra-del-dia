@@ -377,11 +377,11 @@
       votesBox.innerHTML='<div class="empty">No se han podido cargar las votaciones.</div>';
       console.warn(studentsResult.error); return;
     }
-    const students=studentsResult.data||[];
+    const students=(studentsResult.data||[]).filter(st=>st.student_group!=="bachillerato_2");
     if(!students.length) studentsBox.innerHTML='<div class="empty">Todavía no hay alumnos vinculados a este curso.</div>';
     else {
       studentsBox.innerHTML=students.map((st,i)=>
-        '<div class="student-name-row"><span class="small">'+(st.student_group==="bachillerato_2"?"2.º Bachillerato · Alumno "+(i+1):"Alumno "+(i+1))+'</span>'+
+        '<div class="student-name-row"><span class="small">'+"Alumno "+(i+1)+'</span>'+
         '<input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
         '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button></div>'
       ).join('');
