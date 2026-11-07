@@ -159,7 +159,7 @@
       .select("id,course_id,words(id,term,origin,definition,story)")
       .eq("course_id",selectedCourse).eq("explained",true);
     if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
-    entries=(data||[]).filter(row=>row.words).map(row=>({...row,...row.words})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    entries=(data||[]).filter(row=>row.words).map(row=>({...row.words,...row})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
     myVotes = new Map();
     if (student && student.course_id === selectedCourse) {
       const {data: ownVotes, error: votesError} = await client.from("votes")
