@@ -284,7 +284,7 @@
       if (!votesError) (ownVotes || []).forEach(v => myVotes.set(v.course_word_id, Number(v.rating)));
     }
     $("course-select").value=selectedCourse;
-    $("course-caption").textContent="Curso académico "+selectedCourseName()+". Las fichas están disponibles para consulta.";
+    $("course-caption").textContent="Curso académico "+selectedCourseName()+".";
     renderEntries();
   }
 
