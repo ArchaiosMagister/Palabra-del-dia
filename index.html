@@ -144,7 +144,7 @@
   const $ = id => document.getElementById(id);
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 
-  const latinPattern = new RegExp("(^|[^\\p{L}\\p{N}])(" + "Reprehendenti filio Tito, quod etiam urinæ vectigal commentus esset, pecuniam ex prima pensione admovit ad nares, sciscitans num odore offenderetur; et illo negante|Quod natura non dat, Salmantica non praestat|Quod natura non dat, Salmantica non præstat|Non scholae, sed vitae discimus|Roma traditoribus non praemiat|Roma traditoribus non præmiat|Nil satis nisi optimum|Quod scripsi, scripsi|Carthago delenda est|damnatio memoriae|Pecunia non olet|damnatio memoriæ|cursus honorum|offenderetur|e lotio est|praeteritio|homo novus|Brundisium|pelliculam|præteritio|sciscitans|pellicula|commentus|candidus|hospitis|schedula|schedula|vectigal|pensionе|pecuniam|coniveo|mingere|trivium|persona|admovit|negante|hospes|scheda|pellis|mentis|Atqui|conor|scida|copia|urinæ|nares|odore|filio|prima|mens|cor|æ" + ")(?=$|[^\\p{L}\\p{N}])", "giu");
+  const latinPattern = new RegExp("(^|[^\\p{L}\\p{N}])(" + "Reprehendenti filio Tito, quod etiam urinæ vectigal commentus esset, pecuniam ex prima pensione admovit ad nares, sciscitans num odore offenderetur; et illo negante|omnium scientiarum princeps Salmantica docet|Iesus Nazarenus Rex Iudæorum|Iesus Nazarenus Rex Judaeorum|copia, –æ|copia –æ|pellis, –is|pellicula, –æ|hospes, hospitis|mens, mentis|Quod natura non dat, Salmantica non praestat|Quod natura non dat, Salmantica non præstat|Non scholae, sed vitae discimus|Roma traditoribus non praemiat|Roma traditoribus non præmiat|Nil satis nisi optimum|Quod scripsi, scripsi|Carthago delenda est|damnatio memoriae|Pecunia non olet|damnatio memoriæ|cursus honorum|offenderetur|e lotio est|praeteritio|homo novus|Brundisium|pelliculam|præteritio|sciscitans|pellicula|commentus|candidus|hospitis|schedula|vectigal|pecuniam|coniveo|mingere|trivium|persona|admovit|negante|hospes|scheda|pellis|mentis|Atqui|conor|scida|copia|urinæ|nares|odore|filio|prima|mens|cor|æ" + ")(?=$|[^\\p{L}\\p{N}])", "giu");
   const formatText = value => {
     const safe = escapeHtml(value);
     return safe.replace(latinPattern, (match, before, latin) => before + "<em>" + latin + "</em>");
@@ -278,7 +278,7 @@
     const rows=(data||[]).filter(r=>r.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
     if(!rows.length) { $("admin-list").innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
     $("admin-list").innerHTML=rows.map(r=>
-      '<div class="admin-row"><span class="admin-term">'+escapeHtml(r.words.term)+'</span>'+
+      '<div class="admin-row"><span class="admin-term">'+formatText(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
       '<button type="button" class="'+(r.explained?'secondary explained':'primary')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
       (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
@@ -389,7 +389,7 @@
       const ownCourse=student && student.course_id===selectedCourse;
       const average=ratingFor(e);
       const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
-      return '<article class="word-card"><h3 class="term">'+escapeHtml(e.term)+'</h3>'+
+      return '<article class="word-card"><h3 class="term">'+formatText(e.term)+'</h3>'+
         (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
         (e.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(e.definition)+'</p>':'')+
         (e.story?'<div class="entry-label">En contexto</div><p class="entry-text">'+formatText(e.story)+'</p>':'')+
@@ -430,7 +430,7 @@
     if(activeTab==="ranking" || selectedCourse===courseId) renderEntries();
     if(!rankings.length) { $("rank-list").innerHTML='<div class="empty">Todavía no hay valoraciones para este curso.</div>'; return; }
     $("rank-list").innerHTML=rankings.map((r,i)=>
-      '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+escapeHtml(r.term)+'</div>'+
+      '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
       '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
       '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
     ).join("");
