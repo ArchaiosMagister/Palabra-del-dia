@@ -1,5 +1,5 @@
 # Palabra del día
-Web que permite ver y puntuar distintas palabras o expresiones interesantes explicadas en las clases de Latín y Griego del IES Veles e Vents de Torrent.
+Web que permite ver y puntuar distintas palabras o expresiones interesantes explicadas en las clases de Latín y Griego del IES Veles e Vents de Torrent. Proyecto convertido a web con IA, pero a partir de un contenido propio y humano.
 
 1.º de Bachillerato:
 
