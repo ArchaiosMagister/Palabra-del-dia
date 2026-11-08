@@ -1,0 +1,20 @@
+{
+  "id": "/4eso/",
+  "name": "Palabra del día · 4.º ESO",
+  "short_name": "Palabra 4.º ESO",
+  "description": "Diccionario clásico, propuestas y votaciones del curso.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf5fc",
+  "theme_color": "#edf5fc",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icono-4eso-coliseo.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
