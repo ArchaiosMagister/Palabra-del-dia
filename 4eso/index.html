@@ -10,6 +10,40 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (() => {
+      const key = 'palabra-del-dia-theme';
+      const root = document.documentElement;
+      const system = window.matchMedia('(prefers-color-scheme: dark)');
+      const meta = document.querySelector('meta[name="theme-color"]');
+      const lightColor = meta.content;
+      let preference = 'system';
+      try { preference = localStorage.getItem(key) || 'system'; } catch (_) {}
+      if (!['light', 'dark', 'system'].includes(preference)) preference = 'system';
+      function applyTheme() {
+        const dark = preference === 'dark' || (preference === 'system' && system.matches);
+        root.dataset.theme = dark ? 'dark' : 'light';
+        meta.content = dark ? '#121c27' : lightColor;
+      }
+      applyTheme();
+      system.addEventListener('change', applyTheme);
+      document.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('theme-select');
+        select.value = preference;
+        select.addEventListener('change', () => {
+          preference = select.value;
+          try { localStorage.setItem(key, preference); } catch (_) {}
+          applyTheme();
+        });
+        window.addEventListener('storage', event => {
+          if (event.key !== key && event.key !== null) return;
+          preference = ['light', 'dark', 'system'].includes(event.newValue) ? event.newValue : 'system';
+          select.value = preference;
+          applyTheme();
+        });
+      });
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{--paper:#edf5fc;--paper2:#f9fcff;--ink:#203448;--muted:#637d92;--line:#d0e0ef;--red:#0d5eaf;--gold:#6fa8d8;--green:#527b70;--shadow:0 12px 35px #173d6312}
@@ -122,11 +156,40 @@
     .proposal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .hidden{display:none!important}
     @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
+
+    :root{color-scheme:light}
+    :root[data-theme="dark"]{--paper:#121c27;--paper2:#1b2938;--ink:#e5eff9;--muted:#b1c3d5;--line:#3b5064;--red:#86bfff;--gold:#a0c9f0;--green:#9bc9b9;--shadow:0 12px 35px #0004;color-scheme:dark}
+    .theme-control{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:16px;color:var(--muted);font-size:13px}
+    .theme-control select{min-width:0;max-width:100%;padding:7px 10px;font-size:13px;min-height:40px}
+    .theme-control select:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    :root[data-theme="dark"] header,:root[data-theme="dark"] .course-identification,
+    :root[data-theme="dark"] .student-name-row,:root[data-theme="dark"] .vote-word,
+    :root[data-theme="dark"] .admin-row,:root[data-theme="dark"] .proposal-item,
+    :root[data-theme="dark"] .teacher-proposal-card,:root[data-theme="dark"] .proposal-form input,
+    :root[data-theme="dark"] .proposal-form textarea,:root[data-theme="dark"] .proposal-edit input,
+    :root[data-theme="dark"] .proposal-edit textarea{background:var(--paper2)}
+    :root[data-theme="dark"] .preview-term,:root[data-theme="dark"] .term{color:var(--ink)}
+    :root[data-theme="dark"] .status{background:var(--paper2);color:var(--ink)}
+    :root[data-theme="dark"] .vote-person{border-color:var(--line)}
+    :root[data-theme="dark"] .stars button{color:var(--muted)}
+    :root[data-theme="dark"] .stars button.chosen,:root[data-theme="dark"] .stars button:hover{color:var(--gold)}
+    :root[data-theme="dark"] .primary,:root[data-theme="dark"] #teacher-access-toggle.secondary{background:var(--red);border-color:var(--red);color:var(--paper)}
+    :root[data-theme="dark"] .primary:hover,:root[data-theme="dark"] #teacher-access-toggle.secondary:hover{background:var(--gold);border-color:var(--gold);color:var(--paper)}
+    :root[data-theme="dark"] .review-toolbar-button{color:var(--paper)}
+    :root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:var(--muted);opacity:1}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap">
+    <div class="theme-control">
+      <label for="theme-select">Tema</label>
+      <select id="theme-select">
+        <option value="system">Automático</option>
+        <option value="light">Claro</option>
+        <option value="dark">Oscuro</option>
+      </select>
+    </div>
     <div class="masthead">
       <div class="eyebrow">Latín · Griego · Etimología · Mitología · Cultura</div>
       <h1>Palabra del día</h1>
