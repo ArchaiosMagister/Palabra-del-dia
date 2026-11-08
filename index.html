@@ -121,7 +121,7 @@
     .admin-list{display:grid;gap:8px}
     .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
     .student-name-list,.vote-report-list{display:grid;gap:8px}
-    .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#fff5f5}
+    .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#fff5f5}
     .student-name-row input{min-width:0;width:100%}
     .vote-word{padding:12px;border:1px solid var(--line);background:#fff5f5}
     .vote-word-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:8px}
@@ -292,7 +292,10 @@
       <summary>Alumnos y votaciones</summary>
       <div class="teacher-fold-content">
         <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
-        <h3 class="admin-term">Identificación de alumnos</h3>
+        <h3 class="admin-term">Gestión de alumnos</h3>
+        <p class="small">Añade alumnos o sustituye sus códigos. Los códigos se muestran una sola vez; guarda una copia antes de cerrar sesión. Al sustituir un código, se cierra el acceso anterior y se conservan sus votos.</p>
+        <div class="login-row"><input id="new-student-name" type="text" maxlength="120" autocomplete="off" placeholder="Nombre del nuevo alumno" aria-label="Nombre del nuevo alumno"><button id="create-student" type="button" class="primary">Añadir alumno</button></div>
+        <div id="student-code-result" class="status hidden" style="margin-top:12px" role="status"></div>
         <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
         <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
         <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
@@ -345,6 +348,7 @@
     $("logout").addEventListener("click", logout);
     $("teacher-logout").addEventListener("click", logout);
     $("proposal-submit").addEventListener("click", submitProposal);
+    $("create-student").addEventListener("click",()=>manageStudent("create",null,$("create-student")));
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
@@ -400,7 +404,7 @@
   }
 
   async function findLinkedStudent() {
-    const {data,error}=await client.from("students").select("id,course_id,student_group").maybeSingle();
+    const {data,error}=await client.from("students").select("id,course_id,student_group").eq("auth_user_id",currentUser.id).maybeSingle();
     if(error) { console.warn(error); return; }
     student=data||null;
     updateStudentUI();
@@ -414,6 +418,7 @@
   }
 
   function updateTeacherUI() {
+    if(!isTeacher) { $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); $("teacher-votes").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
     updateSessionUI();
@@ -448,7 +453,7 @@
       hideNotice();
     } catch(error) {
       message.textContent=error.message||"Se ha producido un error.";
-    } finally { buttons.forEach(button=>button.disabled=false); }
+    } finally { button.disabled=false; }
   }
 
   async function loadAdminEntries() {
@@ -491,8 +496,9 @@
       studentsBox.innerHTML=students.map((st,i)=>
         '<div class="student-name-row"><span class="small">'+"Alumno "+(i+1)+'</span>'+
         '<input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
-        '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button></div>'
+        '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button><button type="button" class="secondary" data-rotate-student="'+escapeHtml(st.id)+'">Sustituir código</button></div>'
       ).join('');
+      studentsBox.querySelectorAll('button[data-rotate-student]').forEach(btn=>btn.addEventListener('click',()=>manageStudent("rotate",btn.dataset.rotateStudent,btn)));
       studentsBox.querySelectorAll('button[data-save-student]').forEach(btn=>
         btn.addEventListener('click',()=>saveStudentName(btn.dataset.saveStudent,btn))
       );
@@ -524,6 +530,29 @@
       return '<article class="vote-word"><div class="vote-word-head"><strong class="admin-term">'+formatText(word.words.term)+'</strong>'+
         '<span class="small">'+(average===null?'Sin votos':'Media '+average.toFixed(2).replace(".",",")+'/5 · '+wordVotes.length+' '+(wordVotes.length===1?'voto':'votos'))+'</span></div>'+detail+'</article>';
     }).join('');
+  }
+
+  async function manageStudent(action,studentId,button) {
+    if(!isTeacher) return;
+    const name=$("new-student-name").value.trim();
+    if(action==="create" && !name) { showNotice("Escribe el nombre del alumno."); return; }
+    if(action==="rotate" && !confirm("¿Sustituir el código de este alumno? El anterior dejará de funcionar. Se conservarán sus votos.")) return;
+    button.disabled=true;
+    try {
+      const {data,error}=await client.rpc("manage_student",{p_action:action,p_course_id:selectedCourse,p_student_id:studentId,p_name:action==="create"?name:null});
+      if(error) throw error;
+      if(!data?.code) throw new Error("No se ha recibido el código.");
+      const result=$("student-code-result");
+      const label=document.createElement("p");
+      label.textContent=(action==="create"?name:"Nuevo código del alumno")+":";
+      const code=document.createElement("code"); code.textContent=data.code;
+      code.style.overflowWrap="anywhere";
+      const entry=document.createElement("div"); entry.append(label,code); result.append(entry);
+      result.classList.remove("hidden");
+      if(action==="create") $("new-student-name").value="";
+      await loadTeacherReports();
+    } catch(error) { showNotice(error.message||"No se ha podido gestionar el alumno."); }
+    finally { button.disabled=false; }
   }
 
   function proposalStatus(status) {
@@ -600,7 +629,7 @@
     const display_name=input.value.trim();
     if(display_name.length>120) { showNotice("El nombre no puede superar los 120 caracteres."); return; }
     button.disabled=true;
-    const {error}=await client.from("students").update({display_name:display_name||null}).eq("id",studentId);
+    const {error}=await client.rpc("manage_student",{p_action:"rename",p_course_id:selectedCourse,p_student_id:studentId,p_name:display_name||null});
     if(error) {
       showNotice("No se ha podido guardar el nombre. Comprueba que sigues conectado como profesor.");
       console.warn(error); button.disabled=false; return;
@@ -691,7 +720,7 @@
       showNotice("Sesión cerrada correctamente.");
     } catch(error) {
       showNotice("No se ha podido cerrar la sesión. Inténtalo de nuevo.");
-    } finally { button.disabled=false; }
+    } finally { buttons.forEach(button=>button.disabled=false); }
   }
 
   function ratingFor(entry) {
