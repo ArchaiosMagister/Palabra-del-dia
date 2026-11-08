@@ -122,7 +122,7 @@
     .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
     .student-name-list,.vote-report-list{display:grid;gap:8px}
     .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#f5faff}
-    .student-name-row input{min-width:0;width:100%}
+    .student-name-row input{min-width:0;width:100%}.student-name-and-code{min-width:0}.student-inline-code{margin-top:7px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.student-inline-code code{font-size:14px;font-weight:700;user-select:all}
     .vote-word{padding:12px;border:1px solid var(--line);background:#f5faff}
     .vote-word-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:8px}
     .vote-person{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #e5eff8}
@@ -418,7 +418,7 @@
   }
 
   function updateTeacherUI() {
-    if(!isTeacher) { $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); $("teacher-votes").replaceChildren(); }
+    if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); $("teacher-votes").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
     updateSessionUI();
@@ -476,13 +476,15 @@
     );
   }
 
+  const visibleStudentCodes = new Map();
+
   async function loadTeacherReports() {
     if(!isTeacher) return;
     const studentsBox=$("teacher-students"), votesBox=$("teacher-votes");
     studentsBox.innerHTML='<div class="empty">Cargando alumnos…</div>';
     votesBox.innerHTML='<div class="empty">Cargando votaciones…</div>';
     const [studentsResult, wordsResult]=await Promise.all([
-      client.from("students").select("id,display_name,created_at,student_group").or("course_id.eq."+selectedCourse+",student_group.eq.bachillerato_2").order("created_at",{ascending:true}),
+      client.from("students").select("id,display_name,created_at,student_group").or("course_id.eq."+selectedCourse+",student_group.eq.bachillerato_2").order("created_at",{ascending:true}).order("id",{ascending:true}),
       client.from("course_words").select("id,words(term)").eq("course_id",selectedCourse)
     ]);
     if(studentsResult.error) {
@@ -494,8 +496,9 @@
     if(!students.length) studentsBox.innerHTML='<div class="empty">Todavía no hay alumnos vinculados a este curso.</div>';
     else {
       studentsBox.innerHTML=students.map((st,i)=>
-        '<div class="student-name-row"><span class="small">'+"Alumno "+(i+1)+'</span>'+
-        '<input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
+        '<div class="student-name-row" data-student-row="'+escapeHtml(st.id)+'"><span class="small">'+"Alumno "+(i+1)+'</span>'+
+        '<div class="student-name-and-code"><input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
+        '<div class="student-inline-code" aria-live="polite">Código: '+(visibleStudentCodes.has(st.id)?'<code>'+escapeHtml(visibleStudentCodes.get(st.id))+'</code>':'<span class="small">No recuperable por seguridad; puedes sustituirlo.</span>')+'</div></div>'+
         '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button><button type="button" class="secondary" data-rotate-student="'+escapeHtml(st.id)+'">Sustituir código</button></div>'
       ).join('');
       studentsBox.querySelectorAll('button[data-rotate-student]').forEach(btn=>btn.addEventListener('click',()=>manageStudent("rotate",btn.dataset.rotateStudent,btn)));
@@ -542,15 +545,12 @@
       const {data,error}=await client.rpc("manage_student",{p_action:action,p_course_id:selectedCourse,p_student_id:studentId,p_name:action==="create"?name:null});
       if(error) throw error;
       if(!data?.code) throw new Error("No se ha recibido el código.");
-      const result=$("student-code-result");
-      const label=document.createElement("p");
-      label.textContent=(action==="create"?name:"Nuevo código del alumno")+":";
-      const code=document.createElement("code"); code.textContent=data.code;
-      code.style.overflowWrap="anywhere";
-      const entry=document.createElement("div"); entry.append(label,code); result.append(entry);
-      result.classList.remove("hidden");
+      if(!data.id) throw new Error("No se ha recibido el identificador del alumno.");
+      visibleStudentCodes.set(data.id,data.code);
       if(action==="create") $("new-student-name").value="";
       await loadTeacherReports();
+      const row=Array.from($("teacher-students").querySelectorAll("[data-student-row]")).find(el=>el.dataset.studentRow===data.id);
+      if(row) row.querySelector(".student-inline-code")?.scrollIntoView({block:"nearest",behavior:"smooth"});
     } catch(error) { showNotice(error.message||"No se ha podido gestionar el alumno."); }
     finally { button.disabled=false; }
   }
