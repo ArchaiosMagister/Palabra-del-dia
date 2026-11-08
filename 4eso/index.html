@@ -375,6 +375,7 @@
   let courses = [], entries = [], rankings = [], student = null, currentUser = null, myVotes = new Map(), isTeacher = false;
   let selectedCourse = null, activeTab = "dictionary";
   let reviewDeck = [], reviewIndex = 0, reviewRevealed = false;
+  let studentLinkCheck = null;
 
   const $ = id => document.getElementById(id);
   const qrAccessCode = (() => {
@@ -417,6 +418,9 @@
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) checkStudentLink(); });
+    window.addEventListener("focus", () => checkStudentLink());
+    window.setInterval(() => { if (!document.hidden) checkStudentLink(); }, 60000);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
     $("teacher-activate").addEventListener("click", activateTeacher);
@@ -484,6 +488,26 @@
     $("course-select").value=selectedCourse;
     $("course-caption").textContent="Curso académico "+selectedCourseName()+".";
     renderEntries();
+  }
+
+  async function checkStudentLink() {
+    if (!student || !currentUser || studentLinkCheck) return;
+    const expectedStudentId=student.id;
+    const expectedUserId=currentUser.id;
+    studentLinkCheck=(async () => {
+      const {data,error}=await client.from("students").select("id").eq("auth_user_id",expectedUserId).maybeSingle();
+      if (error) { console.warn("No se ha podido comprobar la sesión del alumno:",error); return; }
+      if (!student || student.id!==expectedStudentId || currentUser?.id!==expectedUserId) return;
+      if (data?.id===expectedStudentId) return;
+      student=null;
+      myVotes.clear();
+      if ($("entry-dialog").open) $("entry-dialog").close();
+      updateStudentUI();
+      $("login-message").textContent="Este dispositivo ya no tiene acceso a la cuenta del alumno. El código se ha utilizado en otro dispositivo o ha sido sustituido. Solicita ayuda a tu profesor si no puedes volver a acceder.";
+      showNotice("El acceso de este dispositivo ha dejado de estar activo. Puedes volver a identificarte con tu código.");
+      await loadEntries();
+    })().finally(() => { studentLinkCheck=null; });
+    return studentLinkCheck;
   }
 
   async function findLinkedStudent() {
@@ -918,6 +942,7 @@
   }
 
   async function vote(courseWordId,rating,button) {
+    await checkStudentLink();
     if(!student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
     const buttons=[...button.parentElement.querySelectorAll("button")];
     buttons.forEach(b=>b.disabled=true);
