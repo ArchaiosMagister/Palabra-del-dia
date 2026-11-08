@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#edf5fc">
   <title>Palabra del día · Diccionario clásico · 4.º ESO</title>
   <link rel="icon" type="image/png" sizes="180x180" href="icono-4eso-coliseo.png">
@@ -47,6 +51,40 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
+    /* Touch-friendly layout shared by both course PWAs. */
+    html{overflow-x:hidden;-webkit-text-size-adjust:100%}
+    body{min-width:0;overflow-wrap:break-word}
+    button,input,select,textarea{max-width:100%}
+    button{touch-action:manipulation}
+    .stars button{min-width:44px;min-height:44px}
+    @media(max-width:640px){
+      .wrap{padding-left:16px;padding-right:16px}
+      .masthead{padding:22px 0 15px}
+      h1{font-size:clamp(32px,9vw,44px)}
+      .institution{font-size:clamp(14px,4vw,19px);padding:8px 10px}
+      nav{gap:2px;flex-wrap:wrap;padding-bottom:12px}
+      nav button,.tab{min-height:44px;padding:10px 12px}
+      main{padding:18px 0 calc(70px + env(safe-area-inset-bottom))}
+      .toolbar{align-items:stretch;gap:10px}
+      .toolbar>*{max-width:100%}
+      .toolbar input,.toolbar select{width:100%;min-width:0}
+      .login{padding:18px;margin-top:18px}
+      .login-row{flex-wrap:wrap}
+      .login-row input{flex-basis:100%;width:100%;font-size:16px}
+      .login-row button{min-height:44px;flex:1}
+      .cards{grid-template-columns:minmax(0,1fr)}
+      .word-card,.entry-preview{padding:15px}
+      .student-name-row{flex-wrap:wrap;min-width:0}
+      .student-name-and-code{min-width:0;flex:1 1 100%}
+      .student-name-and-code input{min-width:0;width:100%}
+      .student-inline-code{overflow-wrap:anywhere}
+      .teacher-fold-content{min-width:0}
+      .entry-dialog{max-height:calc(100dvh - 20px)}
+      #student-qr-dialog{max-height:90dvh;overflow:auto}
+      .vote-area{align-items:flex-start}
+      .stars{flex-wrap:wrap}
+      input,select,textarea{font-size:16px}
+    }
     :root{--paper:#edf5fc;--paper2:#f9fcff;--ink:#203448;--muted:#637d92;--line:#d0e0ef;--red:#0d5eaf;--gold:#6fa8d8;--green:#527b70;--shadow:0 12px 35px #173d6312}
     *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",sans-serif;font-size:16px}
     header{border-bottom:1px solid var(--line);background:#f5faff}
@@ -363,6 +401,12 @@
   const showNotice = message => { $("notice").textContent = message; $("notice").classList.remove("hidden"); };
   const hideNotice = () => $("notice").classList.add("hidden");
   const selectedCourseName = () => courses.find(c => c.id === selectedCourse)?.name || "";
+
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(error => console.warn("PWA no disponible:", error));
+    });
+  }
 
   async function init() {
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
