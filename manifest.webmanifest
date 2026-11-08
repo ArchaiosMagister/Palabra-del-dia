@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Palabra del día · 1.º Bachillerato",
+  "short_name": "Palabra 1.º Bach",
+  "description": "Diccionario clásico, propuestas y votaciones del curso.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8eeee",
+  "theme_color": "#f8eeee",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icono-bachillerato-phi.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
