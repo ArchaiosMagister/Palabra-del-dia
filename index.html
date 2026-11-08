@@ -45,6 +45,7 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     :root{--paper:#f8eeee;--paper2:#fffafa;--ink:#382729;--muted:#897477;--line:#ead6d8;--red:#a94f59;--gold:#c77b83;--green:#71836b;--shadow:0 12px 35px #4a252512}
     *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",sans-serif;font-size:16px}
@@ -296,6 +297,7 @@
         <p class="small">Añade alumnos o sustituye sus códigos. Los códigos se muestran una sola vez; guarda una copia antes de cerrar sesión. Al sustituir un código, se cierra el acceso anterior y se conservan sus votos.</p>
         <div class="login-row"><input id="new-student-name" type="text" maxlength="120" autocomplete="off" placeholder="Nombre del nuevo alumno" aria-label="Nombre del nuevo alumno"><button id="create-student" type="button" class="primary">Añadir alumno</button></div>
         <div id="student-code-result" class="status hidden" style="margin-top:12px" role="status"></div>
+        <p class="small">Cuando generes un código podrás mostrar e imprimir su QR personal. Los códigos anteriores no pueden recuperarse: para obtener su QR debes sustituirlos.</p>
         <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
         <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
         <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
@@ -303,6 +305,27 @@
     </details>
   </section>
 </main>
+<dialog id="student-qr-dialog" aria-labelledby="student-qr-title" style="border:0;border-radius:16px;padding:24px;max-width:min(92vw,390px);box-shadow:0 12px 50px #0004">
+  <div id="student-qr-print" style="text-align:center">
+    <h2 id="student-qr-title">Acceso personal</h2>
+    <p id="student-qr-name"></p>
+    <div id="student-qr-image" style="display:flex;justify-content:center;margin:20px auto"></div>
+    <p><code id="student-qr-code"></code></p>
+    <p class="small">Escanea este QR con la cámara del móvil para acceder directamente.</p>
+  </div>
+  <div id="student-qr-actions" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <button type="button" id="student-qr-print-button" class="primary">Imprimir QR</button>
+    <button type="button" id="student-qr-close-button" class="secondary">Cerrar</button>
+  </div>
+</dialog>
+<style>
+@media print {
+  body.qr-printing > *:not(#student-qr-dialog) { display:none!important; }
+  body.qr-printing #student-qr-dialog { position:static!important;display:block!important;border:0!important;box-shadow:none!important;margin:30px auto!important;max-width:100%!important; }
+  body.qr-printing #student-qr-actions { display:none!important; }
+  body.qr-printing #student-qr-image img,body.qr-printing #student-qr-image canvas { print-color-adjust:exact; }
+}
+</style>
 <footer><em>Non scholæ, sed vitæ discimus.</em></footer>
 <script>
 (() => {
@@ -316,6 +339,14 @@
   let reviewDeck = [], reviewIndex = 0, reviewRevealed = false;
 
   const $ = id => document.getElementById(id);
+  const qrAccessCode = (() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#access=")) return null;
+    const raw = hash.slice("#access=".length);
+    history.replaceState(null, "", location.pathname + location.search);
+    try { return decodeURIComponent(raw).trim().normalize("NFKC").toUpperCase(); }
+    catch { return null; }
+  })();
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 
   const latinPattern = new RegExp("(^|[^\\p{L}\\p{N}])(" + "Reprehendenti filio Tito, quod etiam urinæ vectigal commentus esset, pecuniam ex prima pensione admovit ad nares, sciscitans num odore offenderetur; et illo negante|ho dimenticato le chiavi|mi sono scordato di te|herostratic fame|dimenticare|ricordare|sycophant|Herostrat|scordare|diavolo|cédule|Zettel|omnium scientiarum princeps Salmantica docet|inquit|Iesus Nazarenus Rex Iudæorum|Iesus Nazarenus Rex Judaeorum|copia, –æ|copia –æ|pellis, –is|pellicula, –æ|hospes, hospitis|mens, mentis|Quod natura non dat, Salmantica non praestat|Quod natura non dat, Salmantica non præstat|Non scholae, sed vitae discimus|Roma traditoribus non praemiat|Roma traditoribus non præmiat|Nil satis nisi optimum|Quod scripsi, scripsi|Carthago delenda est|damnatio memoriae|Pecunia non olet|damnatio memoriæ|cursus honorum|offenderetur|e lotio est|praeteritio|homo novus|Brundisium|pelliculam|præteritio|sciscitans|pellicula|commentus|candidus|hospitis|schedula|vectigal|pecuniam|coniveo|mingere|trivium|admovit|negante|hospes|scheda|pellis|mentis|Atqui|conor|scida|copia|urinæ|nares|odore|filio|prima|mens|cor|æ" + ")(?=$|[^\\p{L}\\p{N}])", "giu");
@@ -349,6 +380,10 @@
     $("teacher-logout").addEventListener("click", logout);
     $("proposal-submit").addEventListener("click", submitProposal);
     $("create-student").addEventListener("click",()=>manageStudent("create",null,$("create-student")));
+    $("student-qr-close-button").addEventListener("click",()=> $("student-qr-dialog").close());
+    $("student-qr-print-button").addEventListener("click",()=> { document.body.classList.add("qr-printing"); window.print(); });
+    window.addEventListener("afterprint",()=>document.body.classList.remove("qr-printing"));
+    $("student-qr-dialog").addEventListener("close",()=>document.body.classList.remove("qr-printing"));
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
     const {data:{session}} = await client.auth.getSession();
@@ -361,6 +396,10 @@
     }
     await loadRankings(selectedCourse);
     renderEntries();
+    if (qrAccessCode) {
+      $("invite-code").value=qrAccessCode;
+      await activateStudent();
+    }
   }
 
   function switchTab(tab) {
@@ -499,9 +538,12 @@
         '<div class="student-name-row" data-student-row="'+escapeHtml(st.id)+'"><span class="small">'+"Alumno "+(i+1)+'</span>'+
         '<div class="student-name-and-code"><input type="text" maxlength="120" autocomplete="off" placeholder="Nombre y apellidos" aria-label="Nombre del alumno '+(i+1)+'" value="'+escapeHtml(st.display_name||'')+'" data-student-name="'+escapeHtml(st.id)+'">'+
         '<div class="student-inline-code" aria-live="polite">Código: '+(visibleStudentCodes.has(st.id)?'<code>'+escapeHtml(visibleStudentCodes.get(st.id))+'</code>':'<span class="small">No recuperable por seguridad; puedes sustituirlo.</span>')+'</div></div>'+
-        '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button><button type="button" class="secondary" data-rotate-student="'+escapeHtml(st.id)+'">Sustituir código</button></div>'
+        '<button type="button" class="secondary" data-save-student="'+escapeHtml(st.id)+'">Guardar nombre</button>'+
+         (visibleStudentCodes.has(st.id)?'<button type="button" class="secondary" data-qr-student="'+escapeHtml(st.id)+'">Ver QR</button>':'')+
+         '<button type="button" class="secondary" data-rotate-student="'+escapeHtml(st.id)+'">Sustituir código</button></div>'
       ).join('');
       studentsBox.querySelectorAll('button[data-rotate-student]').forEach(btn=>btn.addEventListener('click',()=>manageStudent("rotate",btn.dataset.rotateStudent,btn)));
+      studentsBox.querySelectorAll('button[data-qr-student]').forEach(btn=>btn.addEventListener('click',()=>showStudentQr(btn.dataset.qrStudent)));
       studentsBox.querySelectorAll('button[data-save-student]').forEach(btn=>
         btn.addEventListener('click',()=>saveStudentName(btn.dataset.saveStudent,btn))
       );
@@ -533,6 +575,22 @@
       return '<article class="vote-word"><div class="vote-word-head"><strong class="admin-term">'+formatText(word.words.term)+'</strong>'+
         '<span class="small">'+(average===null?'Sin votos':'Media '+average.toFixed(2).replace(".",",")+'/5 · '+wordVotes.length+' '+(wordVotes.length===1?'voto':'votos'))+'</span></div>'+detail+'</article>';
     }).join('');
+  }
+
+  function showStudentQr(studentId) {
+    if (!isTeacher) return;
+    const code=visibleStudentCodes.get(studentId);
+    if (!code) { showNotice("El código ya no está disponible. Sustitúyelo para generar un QR."); return; }
+    if (typeof QRCode === "undefined") { showNotice("No se ha podido cargar el generador QR. Comprueba la conexión y recarga la página."); return; }
+    const row=Array.from($("teacher-students").querySelectorAll("[data-student-row]")).find(el=>el.dataset.studentRow===studentId);
+    const name=row?.querySelector("[data-student-name]")?.value.trim() || "Alumno";
+    const target=$("student-qr-image");
+    target.replaceChildren();
+    const url=location.origin+location.pathname+"#access="+encodeURIComponent(code);
+    new QRCode(target,{text:url,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
+    $("student-qr-name").textContent=name;
+    $("student-qr-code").textContent=code;
+    $("student-qr-dialog").showModal();
   }
 
   async function manageStudent(action,studentId,button) {
