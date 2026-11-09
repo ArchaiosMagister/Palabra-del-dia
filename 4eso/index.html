@@ -167,14 +167,26 @@
     .teacher-fold-content{padding-top:12px}.teacher-fold-content>.section-note{text-align:center}
     .admin-list{display:grid;gap:8px}
     .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
-    .student-name-list,.vote-report-list{display:grid;gap:8px}
+    .student-name-list{display:grid;gap:8px}
     .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#f5faff}
     .student-name-row input{min-width:0;width:100%}.student-name-and-code{min-width:0}.student-inline-code{margin-top:7px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.student-inline-code code{font-size:14px;font-weight:700;user-select:all}
-    .vote-word{padding:12px;border:1px solid var(--line);background:#f5faff}
-    .vote-word-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:8px}
-    .vote-person{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #e5eff8}
-    .vote-person strong{color:var(--gold)}
-    @media(max-width:560px){.student-name-row{grid-template-columns:1fr}.student-name-row button{width:100%}.vote-word-head{align-items:flex-start;flex-direction:column}}
+    .vote-person{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+    .vote-person strong{color:var(--red);white-space:nowrap}
+    .teacher-word-stats{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:var(--paper2);padding:15px}
+    .teacher-word-stats-header{font-weight:700;color:var(--ink);margin-bottom:12px}
+    .teacher-word-metrics{display:flex;flex-wrap:wrap;gap:12px 30px;padding-bottom:12px}
+    .teacher-word-metric{display:grid;gap:3px}
+    .teacher-word-metric>span{color:var(--muted);font-size:12px}
+    .teacher-word-metric>strong{color:var(--ink);font-size:18px;font-variant-numeric:tabular-nums}
+    .teacher-votes-fold{border-top:1px solid var(--line)}
+    .teacher-votes-fold>summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:44px;font-weight:600;color:var(--red);gap:8px;list-style:none}
+    .teacher-votes-fold>summary::-webkit-details-marker{display:none}
+    .teacher-votes-fold>summary::after{content:"⌄";font-size:20px;line-height:1}
+    .teacher-votes-fold[open]>summary::after{content:"⌃"}
+    .teacher-votes-fold>summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+    .teacher-votes-detail{padding:4px 0 8px}
+    .teacher-votes-detail .vote-person:first-child{border-top:0}
+    @media(max-width:560px){.student-name-row{grid-template-columns:1fr}.student-name-row button{width:100%}}
     .admin-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--line);background:#f5faff}
     .admin-term{font-family:"Crimson Pro",serif;font-size:19px}
     .admin-state{display:flex;align-items:center;gap:10px}
@@ -210,7 +222,7 @@
     .theme-control select{min-width:0;max-width:100%;padding:7px 10px;font-size:13px;min-height:40px}
     .theme-control select:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     :root[data-theme="dark"] header,:root[data-theme="dark"] .course-identification,
-    :root[data-theme="dark"] .student-name-row,:root[data-theme="dark"] .vote-word,
+    :root[data-theme="dark"] .student-name-row,
     :root[data-theme="dark"] .admin-row,:root[data-theme="dark"] .proposal-item,
     :root[data-theme="dark"] .teacher-proposal-card,:root[data-theme="dark"] .proposal-form input,
     :root[data-theme="dark"] .proposal-form textarea,:root[data-theme="dark"] .proposal-edit input,
@@ -358,7 +370,7 @@
       </div>
     </details>
     <details class="teacher-fold">
-      <summary>Alumnos y votaciones</summary>
+      <summary>Alumnos</summary>
       <div class="teacher-fold-content">
         <p class="section-note">Escribe el nombre de cada alumno. Solo el profesorado autorizado puede consultar estos datos.</p>
         <h3 class="admin-term">Gestión de alumnos</h3>
@@ -367,8 +379,7 @@
         <div id="student-code-result" class="status hidden" style="margin-top:12px" role="status"></div>
         <p class="small">Cuando generes un código podrás mostrar e imprimir su QR personal. Los códigos anteriores no pueden recuperarse: para obtener su QR debes sustituirlos.</p>
         <div id="teacher-students" class="student-name-list"><div class="empty">Cargando alumnos…</div></div>
-        <h3 class="admin-term" style="margin-top:24px">Votos individuales</h3>
-        <div id="teacher-votes" class="vote-report-list"><div class="empty">Cargando votaciones…</div></div>
+        <p class="small" style="margin-top:18px">Para consultar las valoraciones individuales, abre cualquier palabra del diccionario. El desplegable «Ver votos por alumno» solo aparecerá durante tu sesión de profesor.</p>
       </div>
     </details>
   </section>
@@ -555,7 +566,7 @@
   }
 
   function updateTeacherUI() {
-    if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); $("teacher-votes").replaceChildren(); }
+    if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
     updateSessionUI();
@@ -617,16 +628,13 @@
 
   async function loadTeacherReports() {
     if(!isTeacher) return;
-    const studentsBox=$("teacher-students"), votesBox=$("teacher-votes");
+    const studentsBox=$("teacher-students");
     studentsBox.innerHTML='<div class="empty">Cargando alumnos…</div>';
-    votesBox.innerHTML='<div class="empty">Cargando votaciones…</div>';
-    const [studentsResult, wordsResult]=await Promise.all([
-      client.from("students").select("id,display_name,created_at,student_group").or("course_id.eq."+selectedCourse+",student_group.eq.bachillerato_2").order("created_at",{ascending:true}).order("id",{ascending:true}),
-      client.from("course_words").select("id,words(term)").eq("course_id",selectedCourse)
-    ]);
+    const studentsResult=await client.from("students").select("id,display_name,created_at,student_group")
+      .or("course_id.eq."+selectedCourse+",student_group.eq.bachillerato_2")
+      .order("created_at",{ascending:true}).order("id",{ascending:true});
     if(studentsResult.error) {
       studentsBox.innerHTML='<div class="empty">No se ha podido cargar la lista de alumnos.</div>';
-      votesBox.innerHTML='<div class="empty">No se han podido cargar las votaciones.</div>';
       console.warn(studentsResult.error); return;
     }
     const students=(studentsResult.data||[]).filter(st=>st.student_group!=="bachillerato_2");
@@ -646,33 +654,6 @@
         btn.addEventListener('click',()=>saveStudentName(btn.dataset.saveStudent,btn))
       );
     }
-    if(wordsResult.error) {
-      votesBox.innerHTML='<div class="empty">No se han podido cargar las palabras.</div>';
-      console.warn(wordsResult.error); return;
-    }
-    const words=(wordsResult.data||[]).filter(w=>w.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
-    if(!words.length) { votesBox.innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
-    const wordIds=words.map(w=>w.id);
-    const votesResult=wordIds.length
-      ? await client.from("votes").select("student_id,course_word_id,rating,updated_at").in("course_word_id",wordIds)
-      : {data:[],error:null};
-    if(votesResult.error) {
-      votesBox.innerHTML='<div class="empty">No se han podido consultar los votos. Comprueba los permisos del profesor.</div>';
-      console.warn(votesResult.error); return;
-    }
-    const studentNames=new Map(students.map(st=>[st.id,(st.display_name||"").trim()]));
-    const votes=votesResult.data||[];
-    votesBox.innerHTML=words.map(word=>{
-      const wordVotes=votes.filter(v=>v.course_word_id===word.id);
-      const average=wordVotes.length ? wordVotes.reduce((sum,v)=>sum+Number(v.rating),0)/wordVotes.length : null;
-      const detail=wordVotes.length
-        ? wordVotes.slice().sort((a,b)=>(studentNames.get(a.student_id)||"").localeCompare(studentNames.get(b.student_id)||"","es")).map(v=>
-          '<div class="vote-person"><span>'+escapeHtml(studentNames.get(v.student_id)||"Nombre pendiente")+'</span><strong>'+Number(v.rating)+'/5</strong></div>'
-        ).join('')
-        : '<p class="small">Todavía no hay votos.</p>';
-      return '<article class="vote-word"><div class="vote-word-head"><strong class="admin-term">'+formatText(word.words.term)+'</strong>'+
-        '<span class="small">'+(average===null?'Sin votos':'Media '+average.toFixed(2).replace(".",",")+'/5 · '+wordVotes.length+' '+(wordVotes.length===1?'voto':'votos'))+'</span></div>'+detail+'</article>';
-    }).join('');
   }
 
   function showStudentQr(studentId) {
@@ -872,6 +853,8 @@
       const {error}=await client.auth.signOut();
       if(error) throw error;
       student=null; currentUser=null; isTeacher=false; myVotes.clear();
+      if($("entry-dialog").open) $("entry-dialog").close();
+      $("entry-dialog-content").replaceChildren();
       updateStudentUI(); updateTeacherUI();
       $("login-message").textContent="Has cerrado la sesión.";
       $("teacher-login-message").textContent="";
@@ -984,6 +967,14 @@
     const ownCourse=student && (student.student_group==="bachillerato_2" || student.course_id===selectedCourse);
     const average=ratingFor(e);
     const score=average===null?"Aún sin votos":("Media: "+average.toFixed(2).replace(".",",")+"/5");
+    const teacherStats=isTeacher
+      ? '<section class="teacher-word-stats" data-teacher-word="'+escapeHtml(e.id)+'" aria-label="Estadísticas privadas del profesor">'+
+        '<div class="teacher-word-stats-header">🔒 Estadísticas del profesor</div>'+
+        '<div class="teacher-word-metrics" aria-live="polite"><span class="small">Cargando estadísticas…</span></div>'+
+        '<details class="teacher-votes-fold"><summary>Ver votos por alumno</summary>'+
+        '<div class="teacher-votes-detail" aria-live="polite"><p class="small">Cargando votos…</p></div></details>'+
+        '</section>'
+      : '';
     $("entry-dialog-content").innerHTML='<div class="dialog-top"><button type="button" class="dialog-close" id="close-entry-dialog">Cerrar ✕</button></div>'+
       '<article class="word-card"><h3 class="term">'+formatText(e.term)+'</h3>'+
       (e.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(e.origin)+'</p>':'')+
@@ -992,10 +983,57 @@
       '<div class="vote-area"><span class="small">'+escapeHtml(score)+'</span>'+
       (ownCourse?'<div class="stars" aria-label="Valorar de una a cinco estrellas">'+[1,2,3,4,5].map(n=>'<button type="button" class="'+(myVotes.get(e.id)>=n?'chosen':'')+'" data-entry="'+escapeHtml(e.id)+'" data-rating="'+n+'" title="'+n+' estrellas" aria-label="'+n+' estrellas">★</button>').join("")+'</div>':
       '<span class="small">'+(student?"Solo puedes votar en tu curso.":"Entra con tu código para votar.")+'</span>')+
-      '</div></article>';
+      '</div>'+teacherStats+'</article>';
     $("close-entry-dialog").addEventListener("click",()=>$("entry-dialog").close());
     $("entry-dialog-content").querySelectorAll(".stars button").forEach(btn=>btn.addEventListener("click",()=>vote(btn.dataset.entry,Number(btn.dataset.rating),btn)));
     if(!$("entry-dialog").open) $("entry-dialog").showModal();
+    if(isTeacher) void loadEntryTeacherStats(e.id);
+  }
+
+  async function loadEntryTeacherStats(courseWordId) {
+    if(!isTeacher) return;
+    const section=$("entry-dialog-content").querySelector("[data-teacher-word]");
+    if(!section || section.dataset.teacherWord!==courseWordId) return;
+    const metrics=section.querySelector(".teacher-word-metrics");
+    const detail=section.querySelector(".teacher-votes-detail");
+    const isCurrent=()=>isTeacher && section.isConnected && $("entry-dialog").open &&
+      $("entry-dialog-content").contains(section) && section.dataset.teacherWord===courseWordId;
+    const {data,error}=await client.from("votes").select("student_id,rating").eq("course_word_id",courseWordId);
+    if(!isCurrent()) return;
+    if(error) {
+      console.warn("No se han podido consultar las votaciones:",error);
+      metrics.textContent="No se han podido cargar las estadísticas.";
+      detail.textContent="Comprueba la conexión y vuelve a abrir la ficha.";
+      return;
+    }
+    const votes=(data||[]).filter(v=>v.student_id && Number.isFinite(Number(v.rating)));
+    const count=votes.length;
+    const average=count?votes.reduce((sum,v)=>sum+Number(v.rating),0)/count:null;
+    metrics.innerHTML=
+      '<div class="teacher-word-metric"><span>Valoración media</span><strong>'+
+      (average===null?'Sin votos':average.toFixed(2).replace(".",",")+' / 5')+'</strong></div>'+
+      '<div class="teacher-word-metric"><span>Participación</span><strong>'+
+      count+' '+(count===1?'voto':'votos')+'</strong></div>';
+    if(!count) {
+      detail.innerHTML='<p class="small">Todavía no hay votos para esta palabra.</p>';
+      return;
+    }
+    const studentIds=[...new Set(votes.map(v=>v.student_id))];
+    const {data:students,error:studentsError}=await client.from("students")
+      .select("id,display_name").in("id",studentIds);
+    if(!isCurrent()) return;
+    if(studentsError) {
+      console.warn("No se han podido consultar los nombres de los alumnos:",studentsError);
+      detail.textContent="No se han podido cargar los nombres. Cierra y vuelve a abrir la ficha.";
+      return;
+    }
+    const names=new Map((students||[]).map(s=>[s.id,(s.display_name||"").trim()]));
+    detail.innerHTML=votes.slice()
+      .sort((a,b)=>(names.get(a.student_id)||"").localeCompare(names.get(b.student_id)||"","es"))
+      .map(v=>'<div class="vote-person"><span>'+
+        escapeHtml(names.get(v.student_id)||"Nombre pendiente")+
+        '</span><strong>'+Number(v.rating)+'/5</strong></div>')
+      .join("");
   }
 
   async function vote(courseWordId,rating,button) {
