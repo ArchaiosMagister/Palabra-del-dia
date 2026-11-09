@@ -959,7 +959,7 @@
 
   function defaultStudentAccent() {
     const name=(student?.display_name||"").trim().normalize("NFD")
-      .replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("es").split(/\\s+/)[0];
+      .replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").split(/\s+/)[0];
     return STUDENT_LEGACY_ACCENTS[name]||null;
   }
 
