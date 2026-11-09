@@ -188,6 +188,11 @@
     .teacher-access{max-width:530px;margin:30px auto 0;padding:24px 0 30px;text-align:center;border-top:1px solid var(--line)}
     #teacher-access-toggle{padding:14px 26px;font-size:16px;font-weight:700;min-height:48px;min-width:230px;border-width:2px;letter-spacing:.02em}button#teacher-access-toggle.secondary{background:var(--red);color:#fff;border:2px solid var(--red)}button#teacher-access-toggle.secondary:hover{background:#813942;border-color:#813942;color:#fff}
     .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
+    .teacher-login-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;gap:10px}
+    .teacher-login-fields label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--muted);font-size:13px;font-weight:600}
+    .teacher-login-fields input{min-width:0;width:100%;height:44px}
+    .teacher-login-fields .primary{grid-column:1/-1;min-height:44px}
+    @media(max-width:560px){.teacher-login-fields{grid-template-columns:minmax(0,1fr)}}
     .teacher-admin{margin:28px 0;padding:22px;background:var(--paper2);border:1px solid var(--gold);border-radius:5px;box-shadow:var(--shadow)}
     .teacher-fold{border-top:1px solid var(--line);padding:15px 0}
     .teacher-fold:first-child{border-top:0;padding-top:0}
@@ -276,8 +281,8 @@
     :root[data-theme="dark"][data-student-accent="sky"]{--red:#83d5fa;--gold:#55bde9}
     :root[data-theme="dark"][data-student-accent="navy"]{--red:#83a9f0;--gold:#628bce}
     :root[data-theme="dark"][data-student-accent="black"]{--red:#e0e0e0;--gold:#b8b8b8}
-    /* Paleta accesible y privada por alumno; los cuatro colores previos permanecen intactos. */
-    .student-accent-settings{margin:14px 0 0;border:1px solid var(--line);background:var(--paper2);border-radius:8px;padding:12px 14px}
+    /* Paleta accesible para visitantes, alumnos y profesorado; conserva los colores anteriores. */
+    .student-accent-settings{max-width:740px;margin:0 auto 18px;border:1px solid var(--line);background:var(--paper2);border-radius:8px;padding:12px 14px}
     .student-accent-settings>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;color:var(--red);font-weight:700;list-style:none}
     .student-accent-settings>summary::-webkit-details-marker{display:none}
     .student-accent-settings>summary:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
@@ -334,6 +339,11 @@
       <button id="tab-ranking" type="button">Clasificación general</button>
       <button id="tab-personal" class="hidden" type="button">Clasificación personal</button>
     </nav>
+      <details class="student-accent-settings" id="student-accent-settings">
+        <summary>🎨 Personalizar color <span class="student-accent-current" id="student-accent-current">Original</span></summary>
+        <p class="small">Cambia los colores de acento de esta web. La elección se guarda en este dispositivo para cada usuario o como visitante. Puedes recuperar el color original cuando quieras.</p>
+        <div id="student-accent-options" class="student-accent-options" role="group" aria-label="Colores de acento disponibles"></div>
+      </details>
   </div>
 </header>
 <main class="wrap">
@@ -353,14 +363,7 @@
       <span id="session-label"></span>
       <button id="logout" class="secondary" type="button">Cerrar sesión</button>
     </div>
-    <div id="student-panel" class="hidden">
-      <span id="student-label"></span>
-      <details class="student-accent-settings" id="student-accent-settings">
-        <summary>🎨 Personalizar color <span class="student-accent-current" id="student-accent-current">Original</span></summary>
-        <p class="small">Elige un color de acento para tu sesión. Se guardará en este dispositivo para tu usuario. Puedes volver a tu color original cuando quieras.</p>
-        <div id="student-accent-options" class="student-accent-options" role="group" aria-label="Colores de acento disponibles"></div>
-      </details>
-    </div>
+    <div id="student-panel" class="hidden"><span id="student-label"></span></div>
     <div class="toolbar" style="margin-top:38px">
       <select id="course-select" aria-label="Curso académico"></select>
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
@@ -429,10 +432,17 @@
       <button id="teacher-access-toggle" class="secondary" type="button">Acceso de profesor</button>
       <div id="teacher-access-form" class="teacher-access-form hidden">
         <p class="small">Acceso privado para administrar las palabras explicadas en clase.</p>
-        <div class="login-row">
-          <input id="teacher-code" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" placeholder="DOC-…" aria-label="Código de profesor">
-          <button id="teacher-activate" class="primary" type="button">Entrar</button>
-        </div>
+        <form id="teacher-login-form" autocomplete="on">
+          <div class="teacher-login-fields">
+            <label for="teacher-username">Usuario
+              <input id="teacher-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" value="MagisterArchaios" required>
+            </label>
+            <label for="teacher-code">Contraseña
+              <input id="teacher-code" name="password" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="Contraseña de profesor" required>
+            </label>
+            <button id="teacher-activate" class="primary" type="submit">Entrar</button>
+          </div>
+        </form>
         <p id="teacher-login-message" class="small" style="margin-top:10px" aria-live="polite"></p>
       </div>
     </section>
@@ -561,7 +571,10 @@
       if(button) chooseStudentAccent(button.dataset.accent);
     });
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
-    $("teacher-activate").addEventListener("click", activateTeacher);
+    $("teacher-login-form").addEventListener("submit", event => {
+      event.preventDefault();
+      void activateTeacher();
+    });
     $("logout").addEventListener("click", logout);
     $("teacher-logout").addEventListener("click", logout);
     $("proposal-submit").addEventListener("click", submitProposal);
@@ -570,7 +583,7 @@
     $("student-qr-print-button").addEventListener("click",()=> { document.body.classList.add("qr-printing"); window.print(); });
     window.addEventListener("afterprint",()=>document.body.classList.remove("qr-printing"));
     $("student-qr-dialog").addEventListener("close",()=>document.body.classList.remove("qr-printing"));
-    $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
+    restoreStudentAccent();
     await loadCourses();
     void recordPageVisit();
     const {data:{session}} = await client.auth.getSession();
@@ -669,6 +682,7 @@
     if(error) { console.warn("No se ha podido comprobar el acceso de profesor:",error); return; }
     isTeacher=!!data;
     updateTeacherUI();
+    if(!student) restoreStudentAccent();
     if(isTeacher) void loadTeacherVisitCount();
   }
 
@@ -704,6 +718,8 @@
 
   async function activateTeacher() {
     const input=$("teacher-code"), message=$("teacher-login-message"), button=$("teacher-activate");
+    const username=$("teacher-username").value.trim();
+    if(username!=="MagisterArchaios") { message.textContent="El usuario del profesor no es correcto."; return; }
     const code=input.value.trim().normalize("NFKC").toUpperCase();
     if(code.length<20) { message.textContent="Escribe el código completo."; return; }
     button.disabled=true; message.textContent="Comprobando el acceso…";
@@ -967,24 +983,30 @@
     const original=defaultStudentAccent();
     const selected=studentAccentPreference;
     const accent=selected==="original"?original:selected;
-    if(student && accent) document.documentElement.dataset.studentAccent=accent;
+    if(accent) document.documentElement.dataset.studentAccent=accent;
     else delete document.documentElement.dataset.studentAccent;
     const label=selected==="original"
       ? (original ? "Original · "+STUDENT_ACCENT_OPTIONS.find(item=>item.id===original)?.name : "Original de la web")
       : STUDENT_ACCENT_OPTIONS.find(item=>item.id===selected)?.name;
     $("student-accent-current").textContent=label||"Original";
     $("student-accent-options").innerHTML=
-      [{id:"original",name:"Mi color original",swatch:""},...STUDENT_ACCENT_OPTIONS]
+      [{id:"original",name:"Color original",swatch:""},...STUDENT_ACCENT_OPTIONS]
       .map(item=>'<button type="button" class="accent-chip" data-accent="'+item.id+
         '" aria-pressed="'+(selected===item.id)+'" title="'+item.name+'">'+
         '<span class="accent-sample"'+(item.swatch?' style="--swatch:'+item.swatch+'"':'')+' aria-hidden="true"></span>'+
         '<span>'+item.name+'</span></button>').join("");
   }
 
+  function studentAccentStorageKey() {
+    if(student) return "palabra-del-dia-student-accent-v1:"+student.id;
+    if(isTeacher) return "palabra-del-dia-teacher-accent-v1";
+    return "palabra-del-dia-visitor-accent-v1";
+  }
+
   function chooseStudentAccent(value) {
-    if(!student || (value!=="original" && !STUDENT_ACCENT_OPTIONS.some(item=>item.id===value))) return;
+    if(value!=="original" && !STUDENT_ACCENT_OPTIONS.some(item=>item.id===value)) return;
     studentAccentPreference=value;
-    const key="palabra-del-dia-student-accent-v1:"+student.id;
+    const key=studentAccentStorageKey();
     try {
       if(value==="original") localStorage.removeItem(key);
       else localStorage.setItem(key,value);
@@ -994,12 +1016,10 @@
 
   function restoreStudentAccent() {
     studentAccentPreference="original";
-    if(student) {
-      try {
-        const saved=localStorage.getItem("palabra-del-dia-student-accent-v1:"+student.id);
-        if(STUDENT_ACCENT_OPTIONS.some(item=>item.id===saved)) studentAccentPreference=saved;
-      } catch(error) { console.warn("No se ha podido recuperar el color guardado:",error); }
-    }
+    try {
+      const saved=localStorage.getItem(studentAccentStorageKey());
+      if(STUDENT_ACCENT_OPTIONS.some(item=>item.id===saved)) studentAccentPreference=saved;
+    } catch(error) { console.warn("No se ha podido recuperar el color guardado:",error); }
     applyStudentAccent();
   }
 
