@@ -174,6 +174,17 @@
     .primary{background:var(--red);color:white;border:1px solid var(--red);border-radius:4px;padding:10px 17px;font:600 14px "Source Sans 3";cursor:pointer}
     .primary:hover{background:#084b8d}.secondary{background:transparent;border:1px solid var(--line);padding:8px 12px;border-radius:4px;cursor:pointer;color:var(--muted)}
     .rank-list{background:var(--paper2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+    .rank-num{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .rank-trophy{width:24px;height:24px;display:inline-block;flex:none;stroke-width:1.8;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .rank-trophy-gold{color:#b88913}
+    .rank-trophy-silver{color:#88949f}
+    .rank-trophy-bronze{color:#b07040}
+    .rank-row.rank-personal{grid-template-columns:70px minmax(0,1fr) 90px}
+    @media(max-width:560px){
+      .rank-row.rank-personal{grid-template-columns:58px minmax(0,1fr) 70px}
+      .rank-num{gap:3px;font-size:18px}
+      .rank-trophy{width:21px;height:21px}
+    }
     .teacher-access{max-width:530px;margin:30px auto 0;padding:24px 0 30px;text-align:center;border-top:1px solid var(--line)}
     #teacher-access-toggle{padding:14px 26px;font-size:16px;font-weight:700;min-height:48px;min-width:230px;border-width:2px;letter-spacing:.02em}#teacher-access-toggle{background:var(--red);color:#fff;border-color:var(--red)}#teacher-access-toggle:hover{background:#084b8d;border-color:#084b8d;color:#fff}
     .teacher-access-form{margin-top:12px;padding:18px;background:var(--paper2);border:1px solid var(--line);text-align:left}
@@ -217,7 +228,7 @@
     .admin-state button.mark-pending{background:#b7791f;color:#fff;border-color:#b7791f}
     .admin-state button.mark-pending:hover{background:#925f16;border-color:#925f16}
     @media(max-width:560px){.admin-row{align-items:flex-start;flex-direction:column}.admin-state{width:100%;justify-content:space-between}.admin-state button{flex:1;min-width:0}}
-    .rank-row{display:grid;grid-template-columns:44px 1fr 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
+    .rank-row{display:grid;grid-template-columns:70px minmax(0,1fr) 100px 90px;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
     .rank-row:last-child{border-bottom:0}.rank-num{font-family:"Crimson Pro",serif;color:var(--red);font-size:22px}.rank-term{font-family:"Crimson Pro",serif;font-size:21px}.rank-score{text-align:right;color:var(--gold);font-weight:700}.rank-count{text-align:right;color:var(--muted);font-size:13px}
     .empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
     footer{text-align:center;border-top:1px solid var(--line);padding:20px;color:var(--muted);font-family:"Crimson Pro",serif}
@@ -234,7 +245,7 @@
     .proposal-edit{display:grid;gap:10px;margin-top:12px}
     .proposal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .hidden{display:none!important}
-    @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:30px 1fr 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
+    @media(max-width:560px){.wrap{padding:0 16px}.masthead{padding-top:25px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.rank-row{grid-template-columns:58px minmax(0,1fr) 74px}.rank-count{display:none}.login-row{flex-direction:column}.login-row .primary{width:100%}}
 
     :root{color-scheme:light}
     :root[data-theme="dark"]{--paper:#121c27;--paper2:#1b2938;--ink:#e5eff9;--muted:#b1c3d5;--line:#3b5064;--red:#86bfff;--gold:#a0c9f0;--green:#9bc9b9;--shadow:0 12px 35px #0004;color-scheme:dark}
@@ -287,7 +298,8 @@
     </div>
     <nav aria-label="Secciones">
       <button id="tab-dictionary" class="active" type="button">Diccionario</button>
-      <button id="tab-ranking" type="button">Clasificación</button>
+      <button id="tab-ranking" type="button">Clasificación general</button>
+      <button id="tab-personal" class="hidden" type="button">Clasificación personal</button>
     </nav>
   </div>
 </header>
@@ -357,12 +369,17 @@
     <div class="toolbar">
       <select id="rank-course-select" aria-label="Curso del ranking"></select>
     </div>
-    <h2 class="section-title">Clasificación del curso</h2>
+    <h2 class="section-title">Clasificación general del curso</h2>
     <p class="section-note">Valoraciones de los alumnos de este curso.</p>
     <div id="rank-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
     <h2 class="section-title" style="margin-top:34px">Clasificación de 2.º de Bachillerato</h2>
     <p class="section-note">Clasificación independiente con los votos del grupo de 2.º de Bachillerato.</p>
     <div id="rank-bach2-list" class="rank-list"><div class="empty">Cargando clasificación…</div></div>
+  </section>
+  <section id="personal-ranking" class="hidden" aria-labelledby="personal-ranking-title">
+    <h2 class="section-title" id="personal-ranking-title">Clasificación personal</h2>
+    <p class="section-note">Las palabras que has votado en esta web, ordenadas de mayor a menor puntuación. Solo tú puedes consultar esta clasificación.</p>
+    <div id="personal-rank-list" class="rank-list"></div>
   </section>
     <div id="teacher-session-panel" class="status hidden" style="max-width:530px;margin:56px auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <span id="teacher-session-label">Sesión de profesor iniciada.</span>
@@ -486,6 +503,7 @@
   async function init() {
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
+    $("tab-personal").addEventListener("click", () => switchTab("personal"));
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
@@ -528,12 +546,19 @@
   }
 
   function switchTab(tab) {
+    if(tab==="personal" && !student) tab="dictionary";
     activeTab=tab;
     $("dictionary").classList.toggle("hidden",tab!=="dictionary");
     $("ranking").classList.toggle("hidden",tab!=="ranking");
-    $("tab-dictionary").classList.toggle("active",tab==="dictionary");
-    $("tab-ranking").classList.toggle("active",tab==="ranking");
-    if(tab==="ranking") loadRankings($("rank-course-select").value || selectedCourse);
+    $("personal-ranking").classList.toggle("hidden",tab!=="personal");
+    for(const [buttonId,name] of [["tab-dictionary","dictionary"],["tab-ranking","ranking"],["tab-personal","personal"]]){
+      const button=$(buttonId);
+      button.classList.toggle("active",tab===name);
+      if(tab===name) button.setAttribute("aria-current","page");
+      else button.removeAttribute("aria-current");
+    }
+    if(tab==="ranking") void loadRankings($("rank-course-select").value || selectedCourse);
+    if(tab==="personal") renderPersonalRanking();
   }
 
   async function loadCourses() {
@@ -565,6 +590,7 @@
     $("course-select").value=selectedCourse;
     $("course-caption").textContent="Curso académico "+selectedCourseName()+".";
     renderEntries();
+    renderPersonalRanking();
   }
 
   async function checkStudentLink() {
@@ -889,6 +915,11 @@
     if(accents[name]) document.documentElement.dataset.studentAccent=accents[name];
     else delete document.documentElement.dataset.studentAccent;
     const linked=!!student;
+    $("tab-personal").classList.toggle("hidden",!linked);
+    if(!linked) {
+      $("personal-rank-list").replaceChildren();
+      if(activeTab==="personal") switchTab("dictionary");
+    }
     $("login-panel").classList.toggle("hidden",linked);
     $("student-panel").classList.toggle("hidden",!linked);
     $("unvoted-words").classList.toggle("hidden",!linked || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse));
@@ -1129,10 +1160,34 @@
       buttons.forEach(b=>b.disabled=false); return;
     }
     myVotes.set(courseWordId, rating);
+    renderPersonalRanking();
     showNotice("Tu valoración se ha guardado. Puedes cambiarla cuando quieras.");
     await loadRankings(selectedCourse);
     renderEntries();
     if($("entry-dialog").open) openEntry(courseWordId);
+  }
+
+  function podiumPosition(position) {
+    if(position>=3) return String(position+1);
+    const colors=["gold","silver","bronze"];
+    const labels=["oro","plata","bronce"];
+    return '<span>'+(position+1)+'</span>'+
+      '<svg class="rank-trophy rank-trophy-'+colors[position]+'" role="img" aria-label="Trofeo de '+labels[position]+'" viewBox="0 0 24 24">'+
+      '<path d="M8 21h8m-4-4v4M7 4h10v7a5 5 0 0 1-10 0V4Z"/>'+
+      '<path d="M7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4"/>'+
+      '</svg>';
+  }
+
+  function renderPersonalRanking() {
+    const box=$("personal-rank-list");
+    if(!student) { box.replaceChildren(); return; }
+    const rated=entries.filter(e=>myVotes.has(e.id))
+      .sort((a,b)=>Number(myVotes.get(b.id))-Number(myVotes.get(a.id))||a.term.localeCompare(b.term,"es"));
+    box.innerHTML=rated.length ? rated.map((e,i)=>
+      '<div class="rank-row rank-personal"><div class="rank-num">'+podiumPosition(i)+'</div>'+
+      '<div class="rank-term">'+formatText(e.term)+'</div>'+
+      '<div class="rank-score">★ '+Number(myVotes.get(e.id))+'/5</div></div>'
+    ).join("") : '<div class="empty">Todavía no has votado ninguna palabra de esta web. Abre una ficha del diccionario para valorarla.</div>';
   }
 
   async function loadRankings(courseId) {
@@ -1145,7 +1200,7 @@
     rankings=data||[];
     if(activeTab==="ranking" || selectedCourse===courseId) renderEntries();
     $("rank-list").innerHTML=rankings.length ? rankings.map((r,i)=>
-      '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
+      '<div class="rank-row"><div class="rank-num">'+podiumPosition(i)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
       '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
       '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
     ).join("") : '<div class="empty">Todavía no hay valoraciones de este curso.</div>';
@@ -1160,7 +1215,7 @@
     } else {
       const bach2Rows=bach2Data||[];
       $("rank-bach2-list").innerHTML=bach2Rows.length ? bach2Rows.map((r,i)=>
-        '<div class="rank-row"><div class="rank-num">'+(i+1)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
+        '<div class="rank-row"><div class="rank-num">'+podiumPosition(i)+'</div><div class="rank-term">'+formatText(r.term)+'</div>'+
         '<div class="rank-score">★ '+Number(r.average_rating).toFixed(2).replace(".",",")+'</div>'+
         '<div class="rank-count">'+r.vote_count+' '+(r.vote_count===1?"voto":"votos")+'</div></div>'
       ).join("") : '<div class="empty">Todavía no hay valoraciones del grupo de 2.º de Bachillerato.</div>';
