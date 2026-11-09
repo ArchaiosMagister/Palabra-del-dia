@@ -134,6 +134,26 @@
     .preview-term .latin-term{font-style:italic}
     .preview-text{display:block;color:var(--muted);line-height:1.45}
     .preview-more{display:block;margin-top:10px;color:var(--red);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    .entry-preview-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:9px}
+    .entry-preview-head .preview-term{flex:1;min-width:0;margin:0}
+    .preview-rating{color:var(--red);font-weight:700;font-size:14px;white-space:nowrap}
+    .preview-rating-empty{color:var(--muted);font-weight:500;font-size:12px}
+    .preview-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+    .preview-footer .preview-more{margin:0}
+    .preview-votes{color:var(--muted);font-size:13px;display:inline-flex;align-items:center;gap:6px}
+    .preview-votes::before{content:"●";font-size:7px;color:var(--gold)}
+    .word-sort-control{display:flex;gap:8px;align-items:center;min-height:44px;color:var(--muted);font-size:13px;white-space:nowrap}
+    .word-sort-control select{min-width:170px;padding:10px;font-size:14px}
+    .teacher-visits{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:var(--paper2);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:15px}
+    .teacher-visits>div{min-width:0;flex:1}
+    .teacher-visits strong{display:block;font-size:30px;line-height:1.25;color:var(--red);font-variant-numeric:tabular-nums}
+    .teacher-visits .small{display:block;margin:2px 0}
+    .teacher-visits button{min-height:44px}
+    @media(max-width:640px){
+      .word-sort-control{width:100%;justify-content:space-between;white-space:normal}
+      .word-sort-control select{width:min(100%,220px);min-width:0}
+      .entry-preview-head{align-items:flex-start;flex-wrap:wrap}
+    }
     .term{font-size:29px;line-height:1.1;margin:0 0 14px;font-weight:600;color:#713b43}
     .entry-dialog{width:min(760px,calc(100% - 28px));max-height:88vh;overflow:auto;border:1px solid var(--gold);border-radius:7px;padding:0;background:var(--paper2);color:var(--ink);box-shadow:0 20px 70px #4a252555}
     .entry-dialog::backdrop{background:#172b3da8}
@@ -292,6 +312,11 @@
     <div class="toolbar" style="margin-top:38px">
       <select id="course-select" aria-label="Curso académico"></select>
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
+      <label class="word-sort-control" for="word-sort"><span>Ordenar por</span><select id="word-sort" aria-label="Ordenar palabras">
+        <option value="alpha">Orden alfabético</option>
+        <option value="rating">Mejor valoradas</option>
+        <option value="votes">Más votadas</option>
+      </select></label>
       <button id="start-review" class="review-toolbar-button" type="button">Repasar palabras</button>
     </div>
     <details class="word-accordion" open>
@@ -355,6 +380,14 @@
       </div>
     </section>
   <section id="teacher-admin" class="teacher-admin hidden">
+    <div class="teacher-visits" aria-label="Contador de visitas de esta web">
+      <div>
+        <span class="small">Visitas registradas en esta web</span>
+        <strong id="teacher-visit-count" aria-live="polite">—</strong>
+        <p class="small">Desde la activación del contador. Una visita por sesión de pestaña o apertura de PWA; no son visitantes únicos.</p>
+      </div>
+      <button type="button" id="refresh-visit-count" class="secondary">Actualizar</button>
+    </div>
     <details class="teacher-fold">
       <summary>Administración del diccionario</summary>
       <div class="teacher-fold-content">
@@ -456,6 +489,8 @@
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
+    $("word-sort").addEventListener("change", renderEntries);
+    $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
@@ -475,6 +510,7 @@
     $("student-qr-dialog").addEventListener("close",()=>document.body.classList.remove("qr-printing"));
     $("teacher-code").addEventListener("keydown", e => { if(e.key==="Enter") activateTeacher(); });
     await loadCourses();
+    void recordPageVisit();
     const {data:{session}} = await client.auth.getSession();
     if (session?.user) {
       currentUser=session.user;
@@ -563,12 +599,36 @@
     if(error) { console.warn("No se ha podido comprobar el acceso de profesor:",error); return; }
     isTeacher=!!data;
     updateTeacherUI();
+    if(isTeacher) void loadTeacherVisitCount();
+  }
+
+  async function recordPageVisit() {
+    const key="palabra-del-dia-visit-v1:"+SITE_COURSE_ID;
+    try { if(sessionStorage.getItem(key)==="1") return; } catch {}
+    try {
+      const {error}=await client.rpc("record_site_visit",{p_course_id:SITE_COURSE_ID});
+      if(error) throw error;
+      try { sessionStorage.setItem(key,"1"); } catch {}
+      if(isTeacher) void loadTeacherVisitCount();
+    } catch(error) { console.warn("No se ha podido registrar la visita:",error); }
+  }
+
+  async function loadTeacherVisitCount() {
+    if(!isTeacher) return;
+    const counter=$("teacher-visit-count");
+    counter.textContent="Cargando…";
+    const {data,error}=await client.from("site_visit_counters")
+      .select("total_visits").eq("course_id",SITE_COURSE_ID).maybeSingle();
+    if(!isTeacher) return;
+    if(error) { console.warn("No se ha podido cargar el contador:",error); counter.textContent="No disponible"; return; }
+    counter.textContent=Number(data?.total_visits??0).toLocaleString("es-ES");
   }
 
   function updateTeacherUI() {
     if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
+    if(!isTeacher) $("teacher-visit-count").textContent="—";
     updateSessionUI();
   }
 
@@ -955,15 +1015,34 @@
   function renderEntries() {
     renderUnvotedWords();
     const query=$("search").value.trim().toLocaleLowerCase("es");
-    const visible=entries.filter(e=>[e.term,e.origin,e.definition,e.story].some(v=>(v||"").toLocaleLowerCase("es").includes(query)));
+    const ratingByWord=new Map(rankings.map(r=>[r.course_word_id,r]));
+    const getVotes=e=>Number(ratingByWord.get(e.id)?.vote_count||0);
+    const getRating=e=>Number(ratingByWord.get(e.id)?.average_rating||0);
+    const alphabetical=(a,b)=>a.term.localeCompare(b.term,"es");
+    const visible=entries.filter(e=>[e.term,e.origin,e.definition,e.story]
+      .some(v=>(v||"").toLocaleLowerCase("es").includes(query)));
+    switch($("word-sort").value) {
+      case "rating":
+        visible.sort((a,b)=>getRating(b)-getRating(a)||getVotes(b)-getVotes(a)||alphabetical(a,b));
+        break;
+      case "votes":
+        visible.sort((a,b)=>getVotes(b)-getVotes(a)||getRating(b)-getRating(a)||alphabetical(a,b));
+        break;
+      default:
+        visible.sort(alphabetical);
+    }
     if(!visible.length) { $("cards").innerHTML='<div class="empty">No hay fichas que coincidan con la búsqueda.</div>'; return; }
     $("cards").innerHTML=visible.map(e=>{
       const excerpt=(e.definition||e.origin||e.story||"").replace(/\s+/g," ").trim();
       const shortText=excerpt.length>150?excerpt.slice(0,147).trimEnd()+"…":excerpt;
+      const votes=getVotes(e), rating=getRating(e);
+      const score=votes?'★ '+rating.toFixed(2).replace(".",","):'☆ Sin valorar';
       return '<button type="button" class="entry-preview" data-open-entry="'+escapeHtml(e.id)+'">'+
-        '<span class="preview-term">'+formatTerm(e.term)+'</span>'+
+        '<span class="entry-preview-head"><span class="preview-term">'+formatTerm(e.term)+'</span>'+
+        '<span class="preview-rating'+(votes?'':' preview-rating-empty')+'">'+escapeHtml(score)+'</span></span>'+
         (shortText?'<span class="preview-text">'+formatText(shortText)+'</span>':'')+
-        '<span class="preview-more">Abrir ficha completa →</span></button>';
+        '<span class="preview-footer"><span class="preview-votes">'+votes+' '+(votes===1?'voto':'votos')+'</span>'+
+        '<span class="preview-more">Abrir ficha →</span></span></button>';
     }).join("");
     $("cards").querySelectorAll("[data-open-entry]").forEach(btn=>btn.addEventListener("click",()=>openEntry(btn.dataset.openEntry)));
     // Elimina posibles restos de texto "/n" o "\\n" fuera de las tarjetas.
