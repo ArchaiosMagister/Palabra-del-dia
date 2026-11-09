@@ -276,6 +276,39 @@
     :root[data-theme="dark"][data-student-accent="sky"]{--red:#83d5fa;--gold:#55bde9}
     :root[data-theme="dark"][data-student-accent="navy"]{--red:#83a9f0;--gold:#628bce}
     :root[data-theme="dark"][data-student-accent="black"]{--red:#e0e0e0;--gold:#b8b8b8}
+    /* Paleta accesible y privada por alumno; los cuatro colores previos permanecen intactos. */
+    .student-accent-settings{margin:14px 0 0;border:1px solid var(--line);background:var(--paper2);border-radius:8px;padding:12px 14px}
+    .student-accent-settings>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;color:var(--red);font-weight:700;list-style:none}
+    .student-accent-settings>summary::-webkit-details-marker{display:none}
+    .student-accent-settings>summary:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .student-accent-current{font-size:13px;color:var(--muted);font-weight:500;text-align:right}
+    .student-accent-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(102px,1fr));gap:8px;margin-top:12px}
+    .accent-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;border:1px solid var(--line);border-radius:8px;background:var(--paper2);color:var(--ink);font:600 13px "Source Sans 3",sans-serif;cursor:pointer;padding:9px 5px;text-align:center;min-width:0}
+    .accent-chip:hover{border-color:var(--gold)}
+    .accent-chip:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+    .accent-chip[aria-pressed="true"]{border:2px solid var(--red);background:var(--paper)}
+    .accent-sample{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;background:var(--swatch);border:1px solid #7773;font-size:18px;font-weight:700;line-height:1;color:#fff;flex:none}
+    .accent-chip[data-accent="yellow"] .accent-sample{color:#282014}
+    .accent-chip[data-accent="original"] .accent-sample{background:linear-gradient(135deg,var(--red),var(--gold))}
+    .accent-chip[aria-pressed="true"] .accent-sample::after{content:"✓"}
+    .accent-chip[data-accent="original"] .accent-sample::before{content:"↺";font-size:20px}
+    .accent-chip[data-accent="original"][aria-pressed="true"] .accent-sample::before{content:""}
+    :root[data-student-accent="green"]{--red:#236b46;--gold:#60a77e}
+    :root[data-theme="dark"][data-student-accent="green"]{--red:#8cdeb0;--gold:#56ad87}
+    :root[data-student-accent="red"]{--red:#aa303c;--gold:#d06b74}
+    :root[data-theme="dark"][data-student-accent="red"]{--red:#ffa1aa;--gold:#d67c85}
+    :root[data-student-accent="yellow"]{--red:#806000;--gold:#b8911f}
+    :root[data-theme="dark"][data-student-accent="yellow"]{--red:#ffe087;--gold:#d6ae46}
+    :root[data-student-accent="orange"]{--red:#9e480d;--gold:#d07c39}
+    :root[data-theme="dark"][data-student-accent="orange"]{--red:#ffb277;--gold:#de8c51}
+    :root[data-student-accent="gray"]{--red:#535c6b;--gold:#8b96a5}
+    :root[data-theme="dark"][data-student-accent="gray"]{--red:#d1d9e2;--gold:#9faebc}
+    :root[data-student-accent="pink"]{--red:#a73c71;--gold:#d1759b}
+    :root[data-theme="dark"][data-student-accent="pink"]{--red:#ffa2ce;--gold:#e178ac}
+    :root[data-student-accent="turquoise"]{--red:#126f72;--gold:#4a9fa1}
+    :root[data-theme="dark"][data-student-accent="turquoise"]{--red:#86dfdc;--gold:#51b9b8}
+    :root[data-student-accent="burgundy"]{--red:#84304e;--gold:#b86982}
+    :root[data-theme="dark"][data-student-accent="burgundy"]{--red:#f6a0b9;--gold:#d27b9d}
   </style>
 </head>
 <body>
@@ -320,7 +353,14 @@
       <span id="session-label"></span>
       <button id="logout" class="secondary" type="button">Cerrar sesión</button>
     </div>
-    <div id="student-panel" class="hidden"><span id="student-label"></span></div>
+    <div id="student-panel" class="hidden">
+      <span id="student-label"></span>
+      <details class="student-accent-settings" id="student-accent-settings">
+        <summary>🎨 Personalizar color <span class="student-accent-current" id="student-accent-current">Original</span></summary>
+        <p class="small">Elige un color de acento para tu sesión. Se guardará en este dispositivo para tu usuario. Puedes volver a tu color original cuando quieras.</p>
+        <div id="student-accent-options" class="student-accent-options" role="group" aria-label="Colores de acento disponibles"></div>
+      </details>
+    </div>
     <div class="toolbar" style="margin-top:38px">
       <select id="course-select" aria-label="Curso académico"></select>
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
@@ -516,6 +556,10 @@
     window.addEventListener("focus", () => checkStudentLink());
     window.setInterval(() => { if (!document.hidden) checkStudentLink(); }, 60000);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
+    $("student-accent-options").addEventListener("click", e => {
+      const button=e.target.closest("button[data-accent]");
+      if(button) chooseStudentAccent(button.dataset.accent);
+    });
     $("teacher-access-toggle").addEventListener("click", () => $("teacher-access-form").classList.toggle("hidden"));
     $("teacher-activate").addEventListener("click", activateTeacher);
     $("logout").addEventListener("click", logout);
@@ -909,11 +953,58 @@
     } finally { button.disabled=false; }
   }
 
-  function updateStudentUI() {
-    const name=(student?.display_name||"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").split(/\s+/)[0];
-    const accents={leire:"purple",nermin:"sky",sergio:"navy",cristian:"black"};
-    if(accents[name]) document.documentElement.dataset.studentAccent=accents[name];
+  const STUDENT_ACCENT_OPTIONS=[{"id":"green","name":"Verde","swatch":"#2d895d"},{"id":"red","name":"Rojo","swatch":"#c64752"},{"id":"yellow","name":"Amarillo","swatch":"#e9bd39"},{"id":"orange","name":"Naranja","swatch":"#e07b2d"},{"id":"sky","name":"Azul claro","swatch":"#2b9dca"},{"id":"navy","name":"Azul oscuro","swatch":"#244e99"},{"id":"purple","name":"Morado","swatch":"#9047b9"},{"id":"black","name":"Negro","swatch":"#262626"},{"id":"gray","name":"Gris","swatch":"#78818d"},{"id":"pink","name":"Rosa","swatch":"#dd70a0"},{"id":"turquoise","name":"Turquesa","swatch":"#31aca9"},{"id":"burgundy","name":"Granate","swatch":"#8b314f"}];
+  const STUDENT_LEGACY_ACCENTS={leire:"purple",nermin:"sky",sergio:"navy",cristian:"black"};
+  let studentAccentPreference="original";
+
+  function defaultStudentAccent() {
+    const name=(student?.display_name||"").trim().normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("es").split(/\\s+/)[0];
+    return STUDENT_LEGACY_ACCENTS[name]||null;
+  }
+
+  function applyStudentAccent() {
+    const original=defaultStudentAccent();
+    const selected=studentAccentPreference;
+    const accent=selected==="original"?original:selected;
+    if(student && accent) document.documentElement.dataset.studentAccent=accent;
     else delete document.documentElement.dataset.studentAccent;
+    const label=selected==="original"
+      ? (original ? "Original · "+STUDENT_ACCENT_OPTIONS.find(item=>item.id===original)?.name : "Original de la web")
+      : STUDENT_ACCENT_OPTIONS.find(item=>item.id===selected)?.name;
+    $("student-accent-current").textContent=label||"Original";
+    $("student-accent-options").innerHTML=
+      [{id:"original",name:"Mi color original",swatch:""},...STUDENT_ACCENT_OPTIONS]
+      .map(item=>'<button type="button" class="accent-chip" data-accent="'+item.id+
+        '" aria-pressed="'+(selected===item.id)+'" title="'+item.name+'">'+
+        '<span class="accent-sample"'+(item.swatch?' style="--swatch:'+item.swatch+'"':'')+' aria-hidden="true"></span>'+
+        '<span>'+item.name+'</span></button>').join("");
+  }
+
+  function chooseStudentAccent(value) {
+    if(!student || (value!=="original" && !STUDENT_ACCENT_OPTIONS.some(item=>item.id===value))) return;
+    studentAccentPreference=value;
+    const key="palabra-del-dia-student-accent-v1:"+student.id;
+    try {
+      if(value==="original") localStorage.removeItem(key);
+      else localStorage.setItem(key,value);
+    } catch(error) { console.warn("No se ha podido guardar el color en este dispositivo:",error); }
+    applyStudentAccent();
+  }
+
+  function restoreStudentAccent() {
+    studentAccentPreference="original";
+    if(student) {
+      try {
+        const saved=localStorage.getItem("palabra-del-dia-student-accent-v1:"+student.id);
+        if(STUDENT_ACCENT_OPTIONS.some(item=>item.id===saved)) studentAccentPreference=saved;
+      } catch(error) { console.warn("No se ha podido recuperar el color guardado:",error); }
+    }
+    applyStudentAccent();
+  }
+
+  function updateStudentUI() {
+    restoreStudentAccent();
     const linked=!!student;
     $("tab-personal").classList.toggle("hidden",!linked);
     if(!linked) {
