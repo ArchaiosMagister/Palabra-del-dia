@@ -273,7 +273,7 @@
     :root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:var(--muted);opacity:1}
     /* Acento individual aplicado solo a la sesión del alumno correspondiente. */
     :root[data-student-accent="purple"]{--red:#7934ad;--gold:#a875ce}
-    :root[data-student-accent="sky"]{--red:#147eaf;--gold:#56b5de}
+    :root[data-student-accent="sky"]{--red:#116f9d;--gold:#56b5de}
     :root[data-student-accent="navy"]{--red:#173c78;--gold:#4773ad}
     :root[data-student-accent="black"]{--red:#202020;--gold:#595959}
     :root[data-theme="dark"][data-student-accent="purple"]{--red:#d6a0ff;--gold:#b67fe5}
@@ -313,6 +313,60 @@
     :root[data-theme="dark"][data-student-accent="turquoise"]{--red:#86dfdc;--gold:#51b9b8}
     :root[data-student-accent="burgundy"]{--red:#84304e;--gold:#b86982}
     :root[data-theme="dark"][data-student-accent="burgundy"]{--red:#f6a0b9;--gold:#d27b9d}
+
+    /* Color de acento ampliado sin teñir los párrafos ni los fondos de lectura. */
+    :root{
+      --accent-wash:color-mix(in srgb,var(--red) 6%,var(--paper2));
+      --accent-wash-strong:color-mix(in srgb,var(--red) 12%,var(--paper2));
+      --accent-stroke:color-mix(in srgb,var(--red) 62%,var(--line));
+    }
+    header{border-bottom:3px solid var(--accent-stroke)}
+    .masthead h1::after{
+      content:"";display:block;width:64px;height:3px;margin:12px auto 0;
+      border-radius:10px;background:var(--accent-stroke)
+    }
+    nav button.active{
+      background:var(--accent-wash);border-radius:6px 6px 0 0
+    }
+    nav button:hover:not(.active){background:var(--accent-wash);color:var(--ink);border-radius:6px 6px 0 0}
+    .word-accordion[open]>summary{background:var(--accent-wash);box-shadow:inset 4px 0 0 var(--accent-stroke)}
+    .word-accordion>summary:hover{background:var(--accent-wash-strong)}
+    .word-accordion .accordion-symbol{
+      border-color:var(--accent-stroke);background:var(--accent-wash)
+    }
+    .section-title::after{
+      content:"";display:block;width:55px;height:3px;margin:8px 0 12px;
+      border-radius:8px;background:var(--accent-stroke)
+    }
+    .entry-preview{border-left:3px solid var(--accent-stroke)}
+    .entry-preview:hover,.entry-preview:focus-visible{background:var(--accent-wash)}
+    .preview-footer{border-top-color:var(--accent-stroke)}
+    .word-card{border-top:3px solid var(--accent-stroke)}
+    .rank-list{border-color:var(--accent-stroke)}
+    .rank-row:nth-child(-n+3){background:var(--accent-wash)}
+    .rank-row:hover{background:var(--accent-wash-strong)}
+    .login,.teacher-visits,.proposal-panel,.review-panel,.teacher-word-stats{
+      border-left:3px solid var(--accent-stroke)
+    }
+    .student-accent-settings{border-color:var(--accent-stroke)}
+    .primary:hover{background:var(--red);filter:brightness(.9)}
+    button#teacher-access-toggle.secondary:hover,#teacher-access-toggle:hover{
+      background:var(--red);border-color:var(--red);filter:brightness(.9)
+    }
+    .review-toolbar-button{
+      background:var(--accent-wash);border-color:var(--accent-stroke);color:var(--ink)
+    }
+    .review-toolbar-button:hover{
+      background:var(--accent-wash-strong);border-color:var(--red);filter:none
+    }
+    :root[data-theme="dark"] .review-toolbar-button{color:var(--ink)}
+    .secondary:hover,.review-secondary:hover,.dialog-close:hover{
+      background:var(--accent-wash);border-color:var(--accent-stroke);color:var(--ink)
+    }
+    input:focus-visible,select:focus-visible,textarea:focus-visible{
+      outline:2px solid var(--red);outline-offset:2px;border-color:var(--accent-stroke)
+    }
+    footer{border-top-color:var(--accent-stroke)}
   </style>
 </head>
 <body>
