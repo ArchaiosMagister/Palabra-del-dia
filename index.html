@@ -216,6 +216,15 @@
     :root[data-theme="dark"] .primary:hover,:root[data-theme="dark"] #teacher-access-toggle.secondary:hover{background:var(--gold);border-color:var(--gold);color:var(--paper)}
     :root[data-theme="dark"] .review-toolbar-button{color:var(--paper)}
     :root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:var(--muted);opacity:1}
+    /* Acento individual aplicado solo a la sesión del alumno correspondiente. */
+    :root[data-student-accent="purple"]{--red:#7934ad;--gold:#a875ce}
+    :root[data-student-accent="sky"]{--red:#147eaf;--gold:#56b5de}
+    :root[data-student-accent="navy"]{--red:#173c78;--gold:#4773ad}
+    :root[data-student-accent="black"]{--red:#202020;--gold:#595959}
+    :root[data-theme="dark"][data-student-accent="purple"]{--red:#d6a0ff;--gold:#b67fe5}
+    :root[data-theme="dark"][data-student-accent="sky"]{--red:#83d5fa;--gold:#55bde9}
+    :root[data-theme="dark"][data-student-accent="navy"]{--red:#83a9f0;--gold:#628bce}
+    :root[data-theme="dark"][data-student-accent="black"]{--red:#e0e0e0;--gold:#b8b8b8}
   </style>
 </head>
 <body>
@@ -260,6 +269,14 @@
       <button id="logout" class="secondary" type="button">Cerrar sesión</button>
     </div>
     <div id="student-panel" class="hidden"><span id="student-label"></span></div>
+    <div class="toolbar" style="margin-top:38px">
+      <select id="course-select" aria-label="Curso académico"></select>
+      <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
+      <button id="start-review" class="review-toolbar-button" type="button">Repasar palabras</button>
+    </div>
+    <h2 class="section-title" style="text-align:center">Palabras explicadas en clase</h2>
+    <p class="section-note" id="course-caption" style="text-align:center">Consulta las fichas del curso.</p>
+    <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
     <section id="student-proposals" class="proposal-panel hidden">
       <h2 class="section-title">Proponer una palabra</h2>
       <p class="section-note">Puedes enviar una propuesta para tu curso. Solo aparecerá en el diccionario cuando el profesor la revise y la apruebe.</p>
@@ -275,14 +292,6 @@
         <div id="student-proposal-list" class="proposal-list"><div class="empty">Todavía no has enviado propuestas.</div></div>
       </div>
     </section>
-    <div class="toolbar" style="margin-top:38px">
-      <select id="course-select" aria-label="Curso académico"></select>
-      <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
-      <button id="start-review" class="review-toolbar-button" type="button">Repasar palabras</button>
-    </div>
-    <h2 class="section-title" style="text-align:center">Palabras explicadas en clase</h2>
-    <p class="section-note" id="course-caption" style="text-align:center">Consulta las fichas del curso.</p>
-    <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
     <section id="review-panel" class="review-panel hidden" aria-live="polite"></section>
     <dialog id="entry-dialog" class="entry-dialog" aria-label="Ficha completa"><div id="entry-dialog-content" class="dialog-inner"></div></dialog>
   </section>
@@ -511,7 +520,7 @@
   }
 
   async function findLinkedStudent() {
-    const {data,error}=await client.from("students").select("id,course_id,student_group").eq("auth_user_id",currentUser.id).maybeSingle();
+    const {data,error}=await client.from("students").select("id,course_id,student_group,display_name").eq("auth_user_id",currentUser.id).maybeSingle();
     if(error) { console.warn(error); return; }
     student=data||null;
     updateStudentUI();
@@ -813,6 +822,10 @@
   }
 
   function updateStudentUI() {
+    const name=(student?.display_name||"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").split(/\s+/)[0];
+    const accents={leire:"purple",nermin:"sky",sergio:"navy",cristian:"black"};
+    if(accents[name]) document.documentElement.dataset.studentAccent=accents[name];
+    else delete document.documentElement.dataset.studentAccent;
     const linked=!!student;
     $("login-panel").classList.toggle("hidden",linked);
     $("student-panel").classList.toggle("hidden",!linked);
