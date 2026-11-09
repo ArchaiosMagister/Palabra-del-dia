@@ -277,6 +277,11 @@
     <h2 class="section-title" style="text-align:center">Palabras explicadas en clase</h2>
     <p class="section-note" id="course-caption" style="text-align:center">Consulta las fichas del curso.</p>
     <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
+    <section id="unvoted-words" class="hidden" style="margin-top:36px">
+      <h2 class="section-title">Palabras no votadas <span id="unvoted-count" class="small"></span></h2>
+      <p class="section-note">Estas son las palabras explicadas que todavía no has valorado. Abre una ficha para votar.</p>
+      <div id="unvoted-list" class="cards"></div>
+    </section>
     <section id="student-proposals" class="proposal-panel hidden">
       <h2 class="section-title">Proponer una palabra</h2>
       <p class="section-note">Puedes enviar una propuesta para tu curso. Solo aparecerá en el diccionario cuando el profesor la revise y la apruebe.</p>
@@ -829,6 +834,7 @@
     const linked=!!student;
     $("login-panel").classList.toggle("hidden",linked);
     $("student-panel").classList.toggle("hidden",!linked);
+    $("unvoted-words").classList.toggle("hidden",!linked || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse));
     $("student-proposals").classList.toggle("hidden",!linked || student.student_group === "bachillerato_2" || student.course_id!==selectedCourse);
     if(linked) {
       const ownName=courses.find(c=>c.id===student.course_id)?.name||"tu curso";
@@ -926,7 +932,29 @@
     }
   }
 
+  function renderUnvotedWords() {
+    const section=$("unvoted-words");
+    const canVote=!!student && (student.student_group==="bachillerato_2" || student.course_id===selectedCourse);
+    section.classList.toggle("hidden",!canVote);
+    if(!canVote) return;
+    const pending=entries.filter(e=>!myVotes.has(e.id));
+    $("unvoted-count").textContent="("+pending.length+")";
+    const box=$("unvoted-list");
+    if(!pending.length) {
+      box.innerHTML='<div class="empty">¡Has votado todas las palabras explicadas de este curso!</div>';
+      return;
+    }
+    box.innerHTML=pending.map(e=>
+      '<button type="button" class="entry-preview" data-unvoted-entry="'+escapeHtml(e.id)+'">'+
+      '<span class="preview-term">'+formatTerm(e.term)+'</span>'+
+      '<span class="preview-more">Abrir ficha y votar →</span></button>'
+    ).join("");
+    box.querySelectorAll("[data-unvoted-entry]").forEach(btn=>
+      btn.addEventListener("click",()=>openEntry(btn.dataset.unvotedEntry)));
+  }
+
   function renderEntries() {
+    renderUnvotedWords();
     const query=$("search").value.trim().toLocaleLowerCase("es");
     const visible=entries.filter(e=>[e.term,e.origin,e.definition,e.story].some(v=>(v||"").toLocaleLowerCase("es").includes(query)));
     if(!visible.length) { $("cards").innerHTML='<div class="empty">No hay fichas que coincidan con la búsqueda.</div>'; return; }
