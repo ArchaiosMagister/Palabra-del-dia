@@ -103,6 +103,14 @@
     .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
     select,input{font:inherit;color:var(--ink);background:var(--paper2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
     select{min-width:160px}input{min-width:230px;flex:1}
+    .word-accordion{border:1px solid var(--line);border-radius:8px;background:var(--paper2);overflow:hidden}
+    .word-accordion>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;padding:16px 20px;font-family:"Crimson Pro",serif;font-size:26px;font-weight:500;color:var(--ink);list-style:none}
+    .word-accordion>summary::-webkit-details-marker{display:none}
+    .word-accordion>summary:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+    .word-accordion .accordion-symbol{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;color:var(--red);font-family:Arial,sans-serif;font-size:25px;font-weight:400;line-height:1}
+    .word-accordion .accordion-symbol::before{content:"+"}
+    .word-accordion[open] .accordion-symbol::before{content:"−"}
+    .word-accordion .accordion-content{padding:0 20px 20px}
     .section-title{font-family:"Crimson Pro",serif;font-size:28px;font-weight:500;margin:0 0 5px}
     .section-note{color:var(--muted);margin:0 0 20px}
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}
@@ -274,13 +282,21 @@
       <input id="search" type="search" placeholder="Buscar una palabra o expresión…" aria-label="Buscar">
       <button id="start-review" class="review-toolbar-button" type="button">Repasar palabras</button>
     </div>
-    <h2 class="section-title" style="text-align:center">Palabras explicadas en clase</h2>
-    <p class="section-note" id="course-caption" style="text-align:center">Consulta las fichas del curso.</p>
-    <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
-    <section id="unvoted-words" class="hidden" style="margin-top:36px">
-      <h2 class="section-title">Palabras no votadas <span id="unvoted-count" class="small"></span></h2>
-      <p class="section-note">Estas son las palabras explicadas que todavía no has valorado. Abre una ficha para votar.</p>
-      <div id="unvoted-list" class="cards"></div>
+    <details class="word-accordion" open>
+      <summary><span>Palabras explicadas en clase</span><span class="accordion-symbol" aria-hidden="true"></span></summary>
+      <div class="accordion-content">
+        <p class="section-note" id="course-caption">Consulta las fichas del curso.</p>
+        <div id="cards" class="cards"><div class="empty">Cargando el diccionario…</div></div>
+      </div>
+    </details>
+    <section id="unvoted-words" class="hidden" style="margin-top:24px">
+      <details class="word-accordion">
+        <summary><span>Palabras no votadas <span id="unvoted-count" class="small"></span></span><span class="accordion-symbol" aria-hidden="true"></span></summary>
+        <div class="accordion-content">
+          <p class="section-note">Estas son las palabras explicadas que todavía no has valorado. Abre una ficha para votar.</p>
+          <div id="unvoted-list" class="cards"></div>
+        </div>
+      </details>
     </section>
     <section id="student-proposals" class="proposal-panel hidden">
       <h2 class="section-title">Proponer una palabra</h2>
