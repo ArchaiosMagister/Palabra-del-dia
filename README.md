@@ -14,3 +14,15 @@ https://archaiosmagister.github.io/Palabra-del-dia/
 https://archaiosmagister.github.io/Palabra-del-dia/4eso/
 
 <img width="300" height="300" alt="qr-code (1)" src="https://github.com/user-attachments/assets/21690a70-c1f9-4693-9f80-71e08a422dba" />
+
+
+## Versión de referencia 1.0
+
+Versión de referencia del **10 de noviembre de 2026**, con ambos sitios PWA estabilizados y comprobaciones automáticas de sintaxis, manifest, caché y contraste.
+
+- [Notas de la versión 1.0](RELEASE_NOTES_1.0.md)
+- [Auditoría y límites conocidos](AUDITORIA_1.0.md)
+- [Pruebas automáticas](.github/workflows/smoke.yml)
+- [Rama estable 1.0](https://github.com/ArchaiosMagister/Palabra-del-dia/tree/release/v1.0)
+
+Las correcciones posteriores pueden desarrollarse en `main` sin modificar la rama de referencia. Los votos y los códigos de acceso siguen almacenados en Supabase, no en el repositorio.
