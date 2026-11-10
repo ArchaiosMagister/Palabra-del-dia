@@ -1,11 +1,11 @@
 // Cache only the public app shell. Never cache Supabase responses, QR credentials or authenticated API data.
-const CACHE = "palabra-shell-bach-v1";
+const CACHE = "palabra-shell-bach-v2";
 const SHELL = ["./", "./manifest.webmanifest", "./pwa-icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("palabra-shell-") && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("palabra-shell-bach-") && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", event => {
   const req = event.request;
