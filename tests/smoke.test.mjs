@@ -70,6 +70,21 @@ for (const site of sites) {
     }
   });
 
+  test(site.name + ": voluntary web updater and iOS icon instructions", () => {
+    const html = text(site.dir, "index.html");
+    assert.ok(html.includes('id="site-update"'), "Missing visible update button");
+    assert.ok(html.includes('id="site-update-status"'), "Missing accessible update status");
+    assert.ok(html.includes("async function updateSite()"), "Missing update handler");
+    assert.ok(html.includes('navigator.serviceWorker.getRegistration("./")'), "Updates this PWA scope only");
+    assert.ok(html.includes('registration.update()'), "Checks for service-worker updates");
+    assert.ok(html.includes('cache: "no-store"'), "Checks the current HTML from network");
+    assert.ok(html.includes('button.dataset.readyToReload = "true"'), "Reload requires a second click");
+    assert.ok(html.includes("location.reload()"), "Manual reload available");
+    assert.ok(html.includes("iOS no permite cambiar automáticamente"), "Honest iOS icon limitation");
+    assert.ok(html.includes("conserva antes tu código o QR personal"), "Protect login recovery");
+    assert.ok(!html.includes("navigator.serviceWorker.getRegistrations()"), "Do not affect other PWAs");
+  });
+
   test(site.name + ": service worker is isolated and does not cache authenticated requests", () => {
     const js = text(site.dir, "sw.js");
     new vm.Script(js);

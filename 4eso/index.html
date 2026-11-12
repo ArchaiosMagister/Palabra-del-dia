@@ -368,6 +368,16 @@
       outline:2px solid var(--red);outline-offset:2px;border-color:var(--accent-stroke)
     }
     footer{border-top-color:var(--accent-stroke)}
+
+    /* Actualización voluntaria de la PWA; no modifica el icono ya instalado en iOS. */
+    .site-update{min-height:40px;font:600 13px "Source Sans 3",sans-serif;white-space:nowrap}
+    .site-update:disabled{opacity:.65;cursor:wait}
+    .site-update-status{max-width:450px;margin:6px 0 0 auto;font-size:12px;line-height:1.4;color:var(--muted);text-align:right}
+    .site-update-status[hidden]{display:none}
+    .site-icon-help{width:max-content;max-width:100%;margin:5px 0 0 auto;padding-bottom:0;color:var(--muted);font-size:12px;text-align:right}
+    .site-icon-help summary{cursor:pointer;list-style-position:inside}
+    .site-icon-help p{max-width:440px;margin:6px 0 0 auto;line-height:1.45;text-align:left}
+    @media(max-width:640px){.theme-control{flex-wrap:wrap}.site-update-status,.site-icon-help p{max-width:100%}}
   </style>
 </head>
 <body>
@@ -380,7 +390,13 @@
         <option value="light">Claro</option>
         <option value="dark">Oscuro</option>
       </select>
+      <button id="site-update" class="secondary site-update" type="button">Actualizar web</button>
     </div>
+    <p id="site-update-status" class="site-update-status" role="status" aria-live="polite" hidden></p>
+    <details class="site-icon-help">
+      <summary>¿No cambia el icono en iPhone o iPad?</summary>
+      <p>Este botón actualiza la web, pero iOS no permite cambiar automáticamente el icono ya instalado. Para ver el nuevo, conserva antes tu código o QR personal, elimina el acceso de la pantalla de inicio y vuelve a añadir la web desde Safari mediante Compartir → Añadir a pantalla de inicio. Es posible que tengas que iniciar sesión otra vez.</p>
+    </details>
     <div class="masthead">
       <div class="eyebrow">Latín · Griego · Etimología · Mitología · Cultura</div>
       <h1>Palabra del día</h1>
@@ -604,7 +620,44 @@
     });
   }
 
+
+  // Actualización manual no destructiva: nunca borramos sesiones, IndexedDB ni cachés de otras PWA.
+  // El icono de la pantalla de inicio en iOS pertenece al sistema y no puede actualizarse aquí.
+  async function updateSite() {
+    const button = $("site-update");
+    if (button.dataset.readyToReload === "true") {
+      location.reload(); // La navegación usa red primero en nuestro service worker.
+      return;
+    }
+    button.disabled = true;
+    $("site-update-status").hidden = false;
+    $("site-update-status").textContent = "Comprobando la versión publicada…";
+    try {
+      // No cambiamos las URL del manifest ni el id de la PWA, para conservar su identidad.
+      if ("serviceWorker" in navigator && location.protocol === "https:") {
+        const registration = await navigator.serviceWorker.getRegistration("./");
+        if (registration) await registration.update();
+      }
+      const url = new URL("./", location.href);
+      url.searchParams.set("_comprobar", String(Date.now()));
+      const response = await fetch(url.toString(), { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      button.dataset.readyToReload = "true";
+      button.textContent = "Recargar web";
+      $("site-update-status").textContent =
+        "Comprobación completada. Pulsa «Recargar web» para cargar la versión publicada. " +
+        "La recarga cerrará los formularios sin guardar; el icono de inicio en iOS puede seguir siendo el anterior.";
+    } catch (error) {
+      console.warn("No se pudo comprobar la actualización:", error);
+      $("site-update-status").textContent =
+        "No se pudo comprobar la actualización. Revisa tu conexión y vuelve a intentarlo.";
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function init() {
+    $("site-update").addEventListener("click", () => void updateSite());
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
     $("tab-personal").addEventListener("click", () => switchTab("personal"));
