@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#0d5eaf"/><rect x="35" y="35" width="442" height="442" rx="85" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width="9"/><text x="256" y="330" text-anchor="middle" font-family="Georgia,serif" font-size="205" font-weight="bold" fill="white">IV</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title"><title id="title">Palabra del día · 4.º ESO</title>
+<rect width="512" height="512" rx="108" fill="#0d5eaf"/>
+<rect x="76" y="69" width="360" height="379" rx="40" fill="#082840"/>
+<path d="M76 208q17-15 58-15v21q-42 0-58 14zM76 231q19-11 58-11v15q-42 0-58 12zM76 337q18-17 58-17v20q-39 0-58 16zM76 358q18-10 58-10v14q-42 0-58 12z" fill="#e8b84d"/>
+<rect x="127" y="80" width="8" height="326" fill="#0a192a"/>
+<path d="M144 81H398q23 0 23 25v290H144Z" fill="#0c2c48"/>
+<path d="M181 116H382q4 22 26 27v222q-22 4-26 27H181q-5-23-25-27V143q20-5 25-27Z" fill="none" stroke="#e8b84d" stroke-width="8" stroke-linejoin="round"/>
+<text x="283" y="322" text-anchor="middle" font-family="Georgia,DejaVu Serif,serif" font-size="177" font-weight="bold" fill="#fff5dc">IV</text>
+<path d="M111 400h304q0 10-3 19l-7 16H118q-20-7-20-18 0-13 13-17Z" fill="#fff5dc"/>
+<path d="M113 412h291m-288 10h285m-281 9h278" fill="none" stroke="#d5bf90" stroke-width="4" stroke-linecap="round"/>
+</svg>

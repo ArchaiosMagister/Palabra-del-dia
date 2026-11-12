@@ -1,0 +1,39 @@
+name: Regenerar iconos PWA a partir de SVG
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pwa-icon.svg'
+      - '4eso/pwa-icon.svg'
+      - 'scripts/generate_pwa_icons.py'
+      - '.github/workflows/icons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preparar renderizado SVG
+        run: python -m pip install --quiet cairosvg
+      - name: Generar y validar todos los iconos
+        run: python scripts/generate_pwa_icons.py
+      - name: Verificar las dos PWA
+        run: node --test tests/smoke.test.mjs
+      - name: Publicar PNG actualizados
+        run: |
+          if git diff --quiet -- pwa-icon-192.png pwa-icon-512.png icono-bachillerato-phi.png 4eso/pwa-icon-192.png 4eso/pwa-icon-512.png 4eso/icono-4eso-coliseo.png; then
+            echo "Los PNG ya están sincronizados."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa-icon-192.png pwa-icon-512.png icono-bachillerato-phi.png 4eso/pwa-icon-192.png 4eso/pwa-icon-512.png 4eso/icono-4eso-coliseo.png
+          git commit -m "Sincronizar PNG de los iconos de ambas PWA"
+          git push
