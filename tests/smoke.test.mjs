@@ -41,8 +41,7 @@ for (const site of sites) {
     for (const expected of [
       'id="tab-dictionary"', 'id="tab-ranking"', 'id="tab-personal"',
       'id="personal-rank-list"', 'id="teacher-admin"',
-      'id="teacher-login-form"', 'autocomplete="username"',
-      'autocomplete="current-password"', 'value="MagisterArchaios"',
+      'id="teacher-login-form"', 'autocomplete="current-password"',
       'id="teacher-visit-count"', 'id="student-accent-options"',
       'async function checkStudentLink()', 'async function loadEntryTeacherStats(',
       'function renderPersonalRanking()', 'async function vote(',
@@ -52,6 +51,12 @@ for (const site of sites) {
     ]) {
       assert.ok(html.includes(expected), "Missing required functionality: " + expected);
     }
+    const usernameTag = html.match(/<input id="teacher-username"[^>]*>/)?.[0];
+    assert.ok(usernameTag, "Missing username control");
+    assert.ok(usernameTag.includes('autocomplete="off"'), "The username must not be prefilled");
+    assert.ok(!/\\bvalue=/.test(usernameTag), "The username must start blank");
+    assert.ok(html.includes('<form id="teacher-login-form" autocomplete="off">'));
+    assert.ok(html.includes('if(username!=="MagisterArchaios")'), "Teacher identity must remain checked");
     assert.ok(!html.includes("SUPABASE_SERVICE_ROLE_KEY"), "Secret key must not be in the browser");
   });
 
