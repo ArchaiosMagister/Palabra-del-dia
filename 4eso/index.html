@@ -440,6 +440,11 @@
     .projection-word .entry-label{font-size:calc(10px * var(--projection-font-zoom))}
     .projection-word .small{font-size:calc(13px * var(--projection-font-zoom))}
     .projection-word .pending-label{font-size:calc(12px * var(--projection-font-zoom))}
+    .projection-history{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;margin:14px auto 0;text-align:center}
+    .projection-history button{min-height:44px;padding:8px 16px;font:600 15px "Source Sans 3",sans-serif}
+    .projection-history button:disabled{opacity:.42;cursor:not-allowed}
+    .projection-history button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .projection-history-count{min-width:68px;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums;font-weight:700}
 
 
 </style>
@@ -664,6 +669,11 @@
   <div id="presentation-stage" class="presentation-stage">
     <h2 class="projection-heading">Última palabra explicada</h2>
     <div id="projection-word" class="projection-word" aria-live="polite"></div>
+    <div class="projection-history" role="group" aria-label="Historial de palabras explicadas">
+      <button id="projection-history-prev" class="secondary" type="button" disabled>← Anterior</button>
+      <output id="projection-history-count" class="projection-history-count" aria-live="polite">—</output>
+      <button id="projection-history-next" class="secondary" type="button" disabled>Siguiente →</button>
+    </div>
     <div class="projection-controls">
       <button id="projection-random" type="button" class="primary" disabled>Revelar palabra al azar</button>
       <p id="projection-count" class="small" aria-live="polite"></p>
@@ -774,22 +784,118 @@
       : count+" "+(count===1?"palabra pendiente":"palabras pendientes")+".";
   }
 
-  async function loadLastExplainedForProjection() {
-    if(!isTeacher || !$("presentation-dialog").open || revealInProgress) return;
-    const {data,error}=await client.from("course_words")
-      .select("id,explained,explained_at,words(term,origin,definition,story)")
+  const PROJECTION_HISTORY_BATCH_SIZE=30;
+  let projectionHistory=[], projectionHistoryIndex=0, projectionHistoryTotal=null;
+  let projectionHistoryHasMore=false, projectionHistoryLoading=false, projectionHistoryNeedsRefresh=false;
+  let projectionHistoryGeneration=0;
+
+  function updateProjectionHistoryControls() {
+    const available=isTeacher && $("presentation-dialog").open && !revealInProgress && !projectionHistoryLoading;
+    const older=projectionHistoryNeedsRefresh
+      ? projectionHistory.length>0
+      : projectionHistoryIndex<projectionHistory.length-1 || projectionHistoryHasMore;
+    $("projection-history-prev").disabled=!available || !older;
+    $("projection-history-next").disabled=!available || projectionHistoryIndex===0;
+    $("projection-history-count").textContent=projectionHistory.length
+      ? (projectionHistoryIndex+1)+" / "+(projectionHistoryTotal??"…")
+      : "Sin palabras explicadas";
+  }
+
+  function displayProjectionHistory(index) {
+    const row=projectionHistory[index];
+    if(!row?.words || !row.explained) return;
+    projectionHistoryIndex=index;
+    $("projection-word").innerHTML='<article class="word-card">'+explanationMarkup(row.words)+'</article>';
+    $("projection-heading").textContent=index===0?"Última palabra explicada":"Palabra explicada anteriormente";
+    $("presentation-dialog").scrollTop=0;
+    updateProjectionHistoryControls();
+  }
+
+  async function fetchProjectionHistoryBatch(generation) {
+    const start=projectionHistory.length;
+    const {data,error,count}=await client.from("course_words")
+      .select("id,explained,explained_at,words(term,origin,definition,story)",{count:"exact"})
       .eq("course_id",SITE_COURSE_ID).eq("explained",true)
       .order("explained_at",{ascending:false,nullsFirst:false})
-      .order("id",{ascending:true}).limit(1).maybeSingle();
-    if(!isTeacher || !$("presentation-dialog").open || revealInProgress) return;
-    if(error) {
-      $("projection-word").innerHTML='<p class="empty">No se ha podido consultar la última palabra explicada.</p>';
+      .order("id",{ascending:true})
+      .range(start,start+PROJECTION_HISTORY_BATCH_SIZE-1);
+    if(error) throw error;
+    if(generation!==projectionHistoryGeneration || !isTeacher || !$("presentation-dialog").open) return false;
+    const rows=data||[];
+    projectionHistory.push(...rows.filter(row=>row.explained===true && row.words));
+    if(Number.isInteger(count)) projectionHistoryTotal=count;
+    projectionHistoryHasMore=rows.length===PROJECTION_HISTORY_BATCH_SIZE
+      && (projectionHistoryTotal===null || projectionHistory.length<projectionHistoryTotal);
+    updateProjectionHistoryControls();
+    return true;
+  }
+
+  async function refreshProjectionHistory(render=true) {
+    if(!isTeacher || !$("presentation-dialog").open || revealInProgress) return false;
+    const generation=++projectionHistoryGeneration;
+    projectionHistory=[];
+    projectionHistoryIndex=0;
+    projectionHistoryTotal=null;
+    projectionHistoryHasMore=false;
+    projectionHistoryNeedsRefresh=false;
+    projectionHistoryLoading=true;
+    updateProjectionHistoryControls();
+    try {
+      if(!await fetchProjectionHistoryBatch(generation)) return false;
+      if(render) {
+        if(projectionHistory.length) displayProjectionHistory(0);
+        else {
+          $("projection-word").innerHTML='<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
+          $("projection-heading").textContent="Última palabra explicada";
+        }
+      }
+      return true;
+    } catch(error) {
+      if(generation!==projectionHistoryGeneration || !isTeacher || !$("presentation-dialog").open) return false;
+      console.warn("No se pudo cargar el historial de proyección:",error);
+      if(render) $("projection-word").innerHTML='<p class="empty">No se han podido consultar las palabras explicadas.</p>';
       $("projection-status").textContent="Comprueba la conexión y vuelve a entrar en modo proyección.";
-      return;
+      return false;
+    } finally {
+      if(generation===projectionHistoryGeneration) {
+        projectionHistoryLoading=false;
+        updateProjectionHistoryControls();
+      }
     }
-    $("projection-word").innerHTML=data?.words
-      ? '<article class="word-card">'+explanationMarkup(data.words)+'</article>'
-      : '<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
+  }
+
+  async function loadLastExplainedForProjection() {
+    await refreshProjectionHistory(true);
+  }
+
+  async function moveProjectionHistory(direction) {
+    if(!isTeacher || !$("presentation-dialog").open || revealInProgress || projectionHistoryLoading) return;
+    if(direction!==1 && direction!==-1) return;
+    if(projectionHistoryNeedsRefresh && !await refreshProjectionHistory(false)) return;
+    const target=projectionHistoryIndex+direction;
+    if(target<0) return;
+    if(target>=projectionHistory.length) {
+      if(!projectionHistoryHasMore) return;
+      const generation=projectionHistoryGeneration;
+      projectionHistoryLoading=true;
+      updateProjectionHistoryControls();
+      try {
+        if(!await fetchProjectionHistoryBatch(generation)) return;
+      } catch(error) {
+        console.warn("No se pudo cargar una palabra anterior:",error);
+        $("projection-status").textContent="No se ha podido cargar la palabra anterior. Inténtalo de nuevo.";
+        return;
+      } finally {
+        if(generation===projectionHistoryGeneration) {
+          projectionHistoryLoading=false;
+          updateProjectionHistoryControls();
+        }
+      }
+    }
+    if(target<projectionHistory.length) {
+      displayProjectionHistory(target);
+      $("projection-status").textContent="";
+    }
   }
 
   async function openProjectionMode() {
@@ -797,6 +903,8 @@
     const dialog=$("presentation-dialog");
     $("projection-word").innerHTML='<p class="empty">Cargando última palabra explicada…</p>';
     $("projection-status").textContent="";
+    $("projection-history-prev").disabled=true;
+    $("projection-history-next").disabled=true;
     $("projection-random").disabled=true;
     if(!dialog.open) dialog.showModal();
     await Promise.allSettled([loadLastExplainedForProjection(),loadPendingWords()]);
@@ -806,6 +914,8 @@
   async function revealRandomPendingWord() {
     if(!isTeacher || !currentUser || revealInProgress || !$("presentation-dialog").open) return;
     revealInProgress=true;
+    updateProjectionHistoryControls();
+    $("projection-heading").textContent="Última palabra explicada";
     const button=$("projection-random");
     button.disabled=true;
     const status=$("projection-status");
@@ -849,6 +959,9 @@
       revealInProgress=false;
       await syncPublicationChange({preserveProjection:revealed});
       await loadPendingWords();
+      projectionHistoryNeedsRefresh=revealed;
+      projectionHistoryIndex=0;
+      updateProjectionHistoryControls();
       updateProjectionControls();
     }
   }
@@ -992,6 +1105,8 @@
       if(button?.dataset.revealId) void revealPendingWord(button.dataset.revealId,button);
     });
     $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
+    $("projection-history-prev").addEventListener("click",()=>void moveProjectionHistory(1));
+    $("projection-history-next").addEventListener("click",()=>void moveProjectionHistory(-1));
     $("projection-zoom-out").addEventListener("click",()=>setProjectionFontZoom(projectionFontZoom-PROJECTION_ZOOM_STEP));
     $("projection-zoom-in").addEventListener("click",()=>setProjectionFontZoom(projectionFontZoom+PROJECTION_ZOOM_STEP));
     setProjectionFontZoom(100);
@@ -1507,6 +1622,9 @@
       const {error}=await client.auth.signOut();
       if(error) throw error;
       student=null; currentUser=null; isTeacher=false; myVotes.clear();
+      projectionHistoryGeneration++;
+      projectionHistory=[]; projectionHistoryIndex=0; projectionHistoryTotal=null;
+      projectionHistoryHasMore=false; projectionHistoryNeedsRefresh=false; projectionHistoryLoading=false;
       if($("entry-dialog").open) $("entry-dialog").close();
       $("entry-dialog-content").replaceChildren();
       updateStudentUI(); updateTeacherUI();
