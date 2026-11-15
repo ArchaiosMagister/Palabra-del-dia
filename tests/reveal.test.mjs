@@ -150,7 +150,7 @@ for (const {name,file} of sites) {
     const calls=[];
     const nodes={
       "presentation-dialog":{open:true},
-      "projection-word":{innerHTML:""},
+      "projection-word":{innerHTML:"",dataset:{}},
       "projection-status":{textContent:""}
     };
     const $=key=>nodes[key];
