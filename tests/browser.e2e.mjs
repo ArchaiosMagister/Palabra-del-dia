@@ -160,7 +160,18 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       await teacher.locator("#teacher-projection-open").click();
       await teacher.locator("#presentation-dialog[open] #projection-word").waitFor();
       const expectedLatest=site.name==="Bachillerato"?"Damocles":"Última explicada";
-      await teacher.waitForFunction(term=>document.querySelector("#projection-word")?.textContent.includes(term),expectedLatest,{timeout:10000});
+      try {
+        await teacher.waitForFunction(term=>document.querySelector("#projection-word")?.textContent.includes(term),expectedLatest,{timeout:10000});
+      } catch(error) {
+        const debug=await teacher.evaluate(()=>({
+          dialogOpen:document.querySelector("#presentation-dialog")?.open,
+          projectionWord:document.querySelector("#projection-word")?.innerText,
+          status:document.querySelector("#projection-status")?.textContent,
+          count:document.querySelector("#projection-history-count")?.textContent,
+          previousDisabled:document.querySelector("#projection-history-prev")?.disabled
+        }));
+        throw new Error("Projection failed to render latest: "+JSON.stringify({debug,errors}));
+      }
       assert.equal(await teacher.locator("#projection-pagination").count(),0,"Original projection has no pagination");
       assert.equal(await teacher.locator("#projection-prev").count(),0,"Original projection has no slide controls");
       const projectionStyle=await teacher.evaluate(()=>{
