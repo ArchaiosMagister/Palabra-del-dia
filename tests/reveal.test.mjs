@@ -162,10 +162,10 @@ for (const {name,file} of sites) {
       maybeSingle(){calls.push(["maybeSingle"]);return Promise.resolve({data:{words:{term:"Última",definition:"Explicación"}}});}
     };
     const client={from(table){calls.push(["from",table]);return mockQuery;}};
-    const factory=new Function("$","isTeacher","revealInProgress","client","SITE_COURSE_ID","explanationMarkup",code+"return loadLastExplainedForProjection;");
-    await factory($,false,false,client,"COURSE-X",()=>"<p>Explained</p>")();
+    const factory=new Function("$","isTeacher","revealInProgress","client","SITE_COURSE_ID","explanationMarkup","requestAnimationFrame","fitProjectionCard",code+"return loadLastExplainedForProjection;");
+    await factory($,false,false,client,"COURSE-X",()=>"<p>Explained</p>",cb=>cb(),()=>{})();
     assert.equal(calls.length,0,"No teacher, no private queries");
-    await factory($,true,false,client,"COURSE-X",()=>"<p>Explained</p>")();
+    await factory($,true,false,client,"COURSE-X",()=>"<p>Explained</p>",cb=>cb(),()=>{})();
     assert.ok(calls.some(x=>x[0]==="eq"&&x[1]==="explained"&&x[2]===true));
     assert.ok(calls.some(x=>x[0]==="eq"&&x[1]==="course_id"&&x[2]==="COURSE-X"));
     assert.ok(calls.some(x=>x[0]==="order"&&x[1]==="explained_at"&&x[2].ascending===false));
@@ -211,7 +211,7 @@ for (const {name,file} of sites) {
       "$","isTeacher","currentUser","revealInProgress","pendingWords",
       "fetchPendingCandidates","randomPendingIndex","pendingCardMarkup",
       "updateWordPublication","explanationMarkup","document","window",
-      "requestAnimationFrame","syncPublicationChange","loadPendingWords","updateProjectionControls"
+      "requestAnimationFrame","syncPublicationChange","loadPendingWords","updateProjectionControls","fitProjectionCard"
     ];
     const factory=new Function(...dependencies,code+"return revealRandomPendingWord;");
     const build=(teacher=true,candidates=[{id:"A",term:"A"},{id:"B",term:"B"}])=>
@@ -224,7 +224,7 @@ for (const {name,file} of sites) {
         document,mockWindow,callback=>callback(),
         async options=>{calls.push(["sync",options])},
         async()=>{calls.push("reload-pending")},
-        ()=>{calls.push("update-controls")});
+        ()=>{calls.push("update-controls")},()=>{calls.push("fit")});
     await build()();
     assert.deepEqual(calls.slice(0,4),["fetch",["choose",2],["front","B"],["publish","B",true]]);
     assert.ok(calls.some(x=>Array.isArray(x)&&x[0]==="flip"));
