@@ -214,14 +214,14 @@ for (const {name,file} of sites) {
       code+"return {load:loadLastExplainedForProjection,move:moveProjectionHistory};");
     const nav=factory(key=>nodes[key],true,false,client,"COURSE-X",word=>"<h3>"+word.term+"</h3>");
     await nav.load();
-    assert.equal(nodes["projection-history-count"].textContent,"1 / 31");
+    assert.equal(nodes["projection-history-count"].textContent,"31 / 31");
     for(let i=0;i<30;i++)await nav.move(1);
     assert.deepEqual(ranges,[[0,29],[30,59]],"Fetch the next batch only after reaching the cache boundary");
-    assert.equal(nodes["projection-history-count"].textContent,"31 / 31");
+    assert.equal(nodes["projection-history-count"].textContent,"1 / 31");
     assert.equal(nodes["projection-history-prev"].disabled,true,"Oldest word must disable Anterior");
     assert.ok(nodes["projection-word"].innerHTML.includes("Palabra 30"));
     await nav.move(-1);
-    assert.equal(nodes["projection-history-count"].textContent,"30 / 31");
+    assert.equal(nodes["projection-history-count"].textContent,"2 / 31");
     assert.ok(nodes["projection-word"].innerHTML.includes("Palabra 29"));
   });
 
