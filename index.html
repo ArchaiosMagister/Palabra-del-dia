@@ -1464,7 +1464,9 @@
       await syncPublicationChange();
       await loadAdminEntries();
     } catch(error) {
-      console.warn("No se ha podido guardar la ficha del profesor:",error);
+      // Los duplicados son un error docente previsto, no un fallo de consola.
+      if(!String(error.message||"").includes("Ya existe una palabra"))
+        console.warn("No se ha podido guardar la ficha del profesor:",error);
       if(isTeacher) message.textContent=error.message||"No se ha podido guardar la ficha. Comprueba la conexión.";
     } finally {
       teacherWordSaving=false;
