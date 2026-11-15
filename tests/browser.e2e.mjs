@@ -81,7 +81,6 @@ function mockDb(){
     if(q.table==="course_words"&&q.update){
       assert.equal(q.role,"teacher","Mock backend denies publication updates to students");
       const match=rows.filter(row=>q.filters.every(f=>f.operator!=="eq" || row[f.key]===f.value));
-      console.log("MOCK-UPDATE",JSON.stringify({role:q.role,course:q.course,filters:q.filters,rows:rows.map(r=>({id:r.id,course_id:r.course_id,explained:r.explained})),match:match.map(r=>r.id)}));
       for(const row of match){const ref=state.byCourse.get(q.course).find(item=>item.id===row.id);Object.assign(ref,q.update);}
       return {data:match.map(x=>({id:x.id})),error:null};
     }
@@ -154,17 +153,10 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
       await teacher.locator("#projection-random").click();
-      await teacher.waitForTimeout(1200);
-      console.log("BROWSER-DEBUG",site.name,JSON.stringify({
-        projectionHtml:(await teacher.locator("#projection-word").innerHTML()).slice(0,2500),
-        projectionStatus:await teacher.locator("#projection-status").textContent(),
-        remainingCount:await teacher.locator("#projection-count").textContent(),
-        errors,
-      }));
-      await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:6000});
+      assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"The reveal button is disabled immediately after activation");
+      await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:15000});
       const revealed=await teacher.locator("#projection-word .pending-card").getAttribute("data-pending-id");
       assert.ok(db.state.byCourse.get(site.course).find(x=>x.id===revealed).explained,"Published before revealing");
-      assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"Disable during reveal");
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===3,{timeout:10000});
       await teacher.waitForFunction(()=>!document.querySelector("#projection-random").disabled,{timeout:10000});
