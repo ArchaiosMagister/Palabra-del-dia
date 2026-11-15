@@ -171,6 +171,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       // Reverse publication as a teacher, verify votes persist and the card disappears.
       await teacher.locator("#presentation-close").click();
       await teacher.locator("#tab-dictionary").click();
+      await teacher.locator("#teacher-admin details.teacher-fold").first().locator("summary").click();
       const management=teacher.locator('#admin-list button[data-course-word="'+revealed+'"]');
       await management.waitFor();
       await management.click();
