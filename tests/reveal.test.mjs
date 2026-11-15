@@ -19,7 +19,7 @@ const sql=read("database/word_publication_reveal.sql");
 for(const {name,file} of sites){
   test(name+": unpublished word gallery is teacher-only and explanation-free",()=>{
     const html=read(file);
-    for(const id of ["tab-pending","pending-view","pending-list","pending-count","presentation-dialog","presentation-stage","presentation-close","teacher-projection-open","projection-word","projection-random","projection-count","projection-status"]){
+    for(const id of ["tab-pending","pending-view","pending-list","pending-count","presentation-dialog","presentation-stage","presentation-close","teacher-projection-open","projection-word","projection-random","projection-count","projection-status","projection-history-prev","projection-history-next","projection-history-count"]){
       assert.ok(html.includes('id="'+id+'"'),"Missing "+id);
     }
     assert.match(html, /if\(tab==="pending" && !isTeacher\) tab="dictionary"/);
@@ -146,32 +146,43 @@ for (const {name,file} of sites) {
     const html=read(file);
     assert.match(html,/id="teacher-projection-open" class="hidden"/);
     assert.match(html,/\$\("teacher-projection-open"\)\.classList\.toggle\("hidden",!isTeacher\)/);
-    const code=section(html,"async function loadLastExplainedForProjection()","async function openProjectionMode()");
+    const code=section(html,"const PROJECTION_HISTORY_BATCH_SIZE=30;","async function openProjectionMode()");
     const calls=[];
     const nodes={
-      "presentation-dialog":{open:true},
-      "projection-word":{innerHTML:"",dataset:{}},
-      "projection-status":{textContent:""}
+      "presentation-dialog":{open:true,scrollTop:0},
+      "projection-word":{innerHTML:""},
+      "projection-status":{textContent:""},
+      "projection-heading":{textContent:""},
+      "projection-history-prev":{disabled:true},
+      "projection-history-next":{disabled:true},
+      "projection-history-count":{textContent:""}
     };
     const $=key=>nodes[key];
     const mockQuery={
-      select(x){calls.push(["select",x]);return this;},
-      eq(k,v){calls.push(["eq",k,v]);return this;},
-      order(k,v){calls.push(["order",k,v]);return this;},
-      limit(n){calls.push(["limit",n]);return this;},
-      maybeSingle(){calls.push(["maybeSingle"]);return Promise.resolve({data:{words:{term:"Última",definition:"Explicación"}}});}
+      select(value,options){calls.push(["select",value,options]);return this;},
+      eq(key,value){calls.push(["eq",key,value]);return this;},
+      order(key,options){calls.push(["order",key,options]);return this;},
+      range(first,last){calls.push(["range",first,last]);return this;},
+      then(resolve,reject){
+        return Promise.resolve({data:[{id:"course-word-A",explained:true,words:{term:"Última",definition:"Explicación"}}],count:1,error:null}).then(resolve,reject);
+      }
     };
     const client={from(table){calls.push(["from",table]);return mockQuery;}};
-    const factory=new Function("$","isTeacher","revealInProgress","client","SITE_COURSE_ID","explanationMarkup","requestAnimationFrame","fitProjectionCard",code+"return loadLastExplainedForProjection;");
-    await factory($,false,false,client,"COURSE-X",()=>"<p>Explained</p>",cb=>cb(),()=>{})();
+    const factory=new Function("$","isTeacher","revealInProgress","client","SITE_COURSE_ID","explanationMarkup",code+"return loadLastExplainedForProjection;");
+    await factory($,false,false,client,"COURSE-X",()=>"<p>Explained</p>")();
     assert.equal(calls.length,0,"No teacher, no private queries");
-    await factory($,true,false,client,"COURSE-X",()=>"<p>Explained</p>",cb=>cb(),()=>{})();
+    await factory($,true,false,client,"COURSE-X",()=>"<p>Explained</p>")();
     assert.ok(calls.some(x=>x[0]==="eq"&&x[1]==="explained"&&x[2]===true));
     assert.ok(calls.some(x=>x[0]==="eq"&&x[1]==="course_id"&&x[2]==="COURSE-X"));
     assert.ok(calls.some(x=>x[0]==="order"&&x[1]==="explained_at"&&x[2].ascending===false));
     assert.ok(calls.some(x=>x[0]==="order"&&x[1]==="explained_at"&&x[2].nullsFirst===false));
-    assert.ok(calls.some(x=>x[0]==="limit"&&x[1]===1));
+    assert.ok(calls.some(x=>x[0]==="order"&&x[1]==="id"&&x[2].ascending===true));
+    assert.ok(calls.some(x=>x[0]==="range"&&x[1]===0&&x[2]===29));
+    assert.ok(calls.some(x=>x[0]==="select"&&x[2]?.count==="exact"));
     assert.equal(nodes["projection-word"].innerHTML,'<article class="word-card"><p>Explained</p></article>');
+    assert.equal(nodes["projection-history-count"].textContent,"1 / 1");
+    assert.equal(nodes["projection-history-prev"].disabled,true);
+    assert.equal(nodes["projection-history-next"].disabled,true);
     assert.ok(html.includes('id="projection-random" type="button" class="primary" disabled'));
   });
 
