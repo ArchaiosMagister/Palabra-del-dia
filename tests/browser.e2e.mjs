@@ -201,7 +201,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       await teacher.waitForFunction(()=>document.querySelector("#projection-pagination").classList.contains("is-active"),{timeout:10000});
       await assertProjectionFits(site.name+" revealed landscape");
       const firstPage=await teacher.locator("#projection-page-count").textContent();
-      assert.match(firstPage,/^1 \/ [2-9][0-9]*$/,"Long explanation must be paginated without scroll");
+      assert.match(firstPage,/^1 \/ (?:[2-9]|[1-9][0-9]+)$/,"Long explanation must be paginated without scroll");
       await teacher.locator("#projection-next").click();
       assert.match(await teacher.locator("#projection-page-count").textContent(),/^2 \/ /);
       await assertProjectionFits(site.name+" second page");
