@@ -721,7 +721,7 @@
       back.innerHTML=explanationMarkup(word);
       card.querySelector(".pending-card-inner").append(back);
       requestAnimationFrame(()=>card.classList.add("is-revealed"));
-      if(!presenting) {
+      if(!presenting && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         await new Promise(resolve=>setTimeout(resolve,830));
         card.classList.add("is-transferring");
         await new Promise(resolve=>setTimeout(resolve,440));
