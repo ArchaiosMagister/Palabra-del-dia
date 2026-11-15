@@ -753,6 +753,7 @@
     const original=projectionOriginalHtml.get(face)||face.innerHTML;
     projectionOriginalHtml.set(face,original);
     face.innerHTML=original;
+    face.style.removeProperty("overflow-y");
     projectionPages=[];
     updateProjectionPagination();
     projectionWord.style.height="auto";
@@ -887,6 +888,7 @@
       displayProjectionPage(projectionPageIndex);
     } finally {
       probe.remove();
+      projectionWord.dataset.layoutReady="true";
     }
   }
 
@@ -980,6 +982,7 @@
     $("projection-word").innerHTML=data?.words
       ? '<article class="word-card">'+explanationMarkup(data.words)+'</article>'
       : '<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
+    delete $("projection-word").dataset.layoutReady;
     requestAnimationFrame(fitProjectionCard);
   }
 
