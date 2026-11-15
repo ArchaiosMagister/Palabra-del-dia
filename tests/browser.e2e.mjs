@@ -65,6 +65,8 @@ function mockDb(){
       {id:site.name+"-pending2",course_id:site.course,explained:false,explained_at:null,words:{id:"w3",term:"Pendiente dos",origin:"Greek",definition:"Secreto dos",story:""}},
     ]);
   }
+  const longExplanation=("Una explicación con abundantes ejemplos etimológicos y referencias al vocabulario estudiado en clase. ").repeat(42);
+  for(const rows of state.byCourse.values()) for(const row of rows) if(!row.explained) row.words.story=longExplanation;
   const votes=new Map();
   const fetchRows=async q=>{
     let rows=[];
@@ -150,14 +152,51 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(await student.locator("#teacher-projection-open:visible").count(),0,"Student must not see projection");
       assert.equal(await student.locator("#cards .entry-preview").count(),2,"Only two explained fixtures visible");
       await teacher.locator("#teacher-projection-open").click();
+      async function assertProjectionFits(label) {
+        const sizes=await teacher.evaluate(()=>{
+          const dialog=document.querySelector("#presentation-dialog");
+          const word=document.querySelector("#projection-word");
+          const face=word?.querySelector(".pending-face-back, .word-card");
+          const controls=document.querySelector(".projection-controls");
+          return {dialogOverflow:dialog.scrollHeight-dialog.clientHeight,
+            faceOverflow:face?face.scrollHeight-face.clientHeight:0,
+            wordHeight:word?.clientHeight,
+            controlsBottom:controls?.getBoundingClientRect().bottom,
+            windowHeight:window.innerHeight};
+        });
+        assert.ok(sizes.dialogOverflow<=3,label+": dialog must not scroll: "+JSON.stringify(sizes));
+        assert.ok(sizes.faceOverflow<=3,label+": content must fit its slide: "+JSON.stringify(sizes));
+        assert.ok(sizes.wordHeight>100,label+": card has usable height: "+JSON.stringify(sizes));
+        assert.ok(sizes.controlsBottom<=sizes.windowHeight+3,label+": controls not clipped: "+JSON.stringify(sizes));
+      }
       await teacher.locator("#presentation-dialog[open] #projection-word").waitFor();
       await teacher.waitForFunction(()=>document.querySelector("#projection-word")?.textContent.includes("Última explicada"),{timeout:10000});
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
+      await assertProjectionFits(site.name+" latest landscape");
+      await teacher.setViewportSize({width:768,height:1024});
+      await teacher.waitForTimeout(100);
+      await assertProjectionFits(site.name+" latest portrait");
+      await teacher.setViewportSize({width:1024,height:768});
+      await teacher.waitForTimeout(100);
+      await assertProjectionFits(site.name+" latest landscape restored");
       await teacher.locator("#projection-random").click();
       assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"The reveal button is disabled immediately after activation");
       await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:15000});
       const revealed=await teacher.locator("#projection-word .pending-card").getAttribute("data-pending-id");
+      await teacher.waitForFunction(()=>document.querySelector("#projection-pagination").classList.contains("is-active"),{timeout:10000});
+      await assertProjectionFits(site.name+" revealed landscape");
+      const firstPage=await teacher.locator("#projection-page-count").textContent();
+      assert.match(firstPage,/^1 \/ [2-9][0-9]*$/,"Long explanation must be paginated without scroll");
+      await teacher.locator("#projection-next").click();
+      assert.match(await teacher.locator("#projection-page-count").textContent(),/^2 \/ /);
+      await assertProjectionFits(site.name+" second page");
+      await teacher.setViewportSize({width:768,height:1024});
+      await teacher.waitForTimeout(120);
+      await assertProjectionFits(site.name+" revealed portrait");
+      await teacher.setViewportSize({width:1024,height:768});
+      await teacher.waitForTimeout(120);
+      await assertProjectionFits(site.name+" revealed landscape after rotation");
       assert.ok(db.state.byCourse.get(site.course).find(x=>x.id===revealed).explained,"Published before revealing");
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===3,{timeout:10000});
