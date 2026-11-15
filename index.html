@@ -668,12 +668,12 @@
       '<p class="small">✓ Explicada · Votación desbloqueada</p>';
   }
 
-  function pendingCardMarkup(word) {
+  function pendingCardMarkup(word,showActions=true) {
     return '<article class="pending-card" data-pending-id="'+escapeHtml(word.id)+'"><div class="pending-card-inner">'+
       '<div class="pending-face pending-face-front"><span class="pending-label">🔒 Aún no explicada</span>'+
       '<h3>'+formatText(word.term)+'</h3><p class="small">La explicación está oculta y no se puede votar.</p>'+
-      '<div class="pending-buttons"><button class="primary" type="button" data-reveal-id="'+escapeHtml(word.id)+'">Revelar</button>'+
-      '</div></div></div></article>';
+      (showActions?'<div class="pending-buttons"><button class="primary" type="button" data-reveal-id="'+escapeHtml(word.id)+'">Revelar</button></div>':'')+
+      '</div></div></article>';
   }
 
   function renderPendingWords() {
@@ -694,6 +694,7 @@
       updateProjectionControls();
     } catch(error) {
       if(!isTeacher) return;
+      pendingWords=[];
       $("pending-list").innerHTML='<div class="empty">No se han podido cargar las palabras pendientes.</div>';
       if($("presentation-dialog").open) {
         $("projection-random").disabled=true;
@@ -768,6 +769,7 @@
     button.disabled=true;
     const status=$("projection-status");
     status.textContent="Seleccionando una palabra pendiente al azar…";
+    let revealed=false;
     try {
       // Consultamos candidaturas actuales, no una lista almacenada en el navegador.
       const candidates=await fetchPendingCandidates();
@@ -779,7 +781,7 @@
       }
       const word=candidates[randomPendingIndex(candidates.length)];
       const container=$("projection-word");
-      container.innerHTML=pendingCardMarkup(word);
+      container.innerHTML=pendingCardMarkup(word,false);
       const card=container.querySelector(".pending-card");
       // El giro presenta primero el título, sin mostrar ninguna explicación aún.
       await updateWordPublication(word.id,true);
@@ -791,6 +793,7 @@
         await new Promise(resolve=>setTimeout(resolve,350));
       }
       requestAnimationFrame(()=>card.classList.add("is-revealed"));
+      revealed=true;
       status.textContent="Palabra revelada y votación desbloqueada.";
       if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         await new Promise(resolve=>setTimeout(resolve,820));
@@ -798,13 +801,12 @@
     } catch(error) {
       console.warn("No se ha podido revelar la palabra aleatoria:",error);
       status.textContent="No se pudo revelar la palabra. Comprueba la conexión y vuelve a intentarlo.";
-      // Refrescamos desde el servidor por si otra sesión ha cambiado su estado.
-      await loadLastExplainedForProjection();
+      // La ficha fallida no sustituye la última palabra explicada.
+      $("projection-word").innerHTML='<p class="empty">Consultando última palabra explicada…</p>';
     } finally {
       // Synchronize public views without replacing the newly revealed projected card.
-      const stillRevealing=revealInProgress;
       revealInProgress=false;
-      await syncPublicationChange({preserveProjection:stillRevealing});
+      await syncPublicationChange({preserveProjection:revealed});
       await loadPendingWords();
       updateProjectionControls();
     }
