@@ -46,7 +46,7 @@ Efectuadas con `SET LOCAL ROLE` y un contexto de autenticación equivalente al d
 | `public_rankings_cache` | 27 | 27 |
 | `word_revisions` | 0 (no existía) | 2 |
 
-Se ejecutaron los avisos de seguridad y rendimiento de Supabase. Persisten advertencias relativas a funciones y políticas anteriores, no causadas por esta migración; deben revisarse por separado sin romper los accesos anónimos y la administración que actualmente necesita la aplicación.
+Se ejecutaron los asesores de seguridad y rendimiento de Supabase. Persisten avisos preexistentes sobre funciones con permisos elevados, y la nueva política de lectura para el profesor añade un aviso de rendimiento sobre múltiples políticas permisivas en `words`. Las pruebas de RLS descartan acceso de alumno o visitante a palabras pendientes. Las advertencias ajenas a esta función se revisarán por separado, sin alterar los accesos actuales.
 
 ## GitHub Actions
 
