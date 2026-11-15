@@ -20,13 +20,14 @@ const mockSdk=String.raw`
   function from(table){
     const state={table,filters:[],orders:[],role,course:site};
     const query={
-      select(value){state.select=value;return this},
+      select(value,options){state.select=value;state.wantCount=options?.count==="exact";return this},
       eq(key,value){state.filters.push({operator:"eq",key,value});return this},
       gt(key,value){state.filters.push({operator:"gt",key,value});return this},
       in(key,value){state.filters.push({operator:"in",key,value});return this},
       or(value){state.orFilter=value;return this},
       order(key,value){state.orders.push({key,value});return this},
       limit(value){state.limit=value;return this},
+      range(start,end){state.rangeStart=start;state.rangeEnd=end;return this},
       update(value){state.update=value;return this},
       insert(value){state.insert=value;return this},
       upsert(value){state.upsert=value;return this},
@@ -107,8 +108,10 @@ function mockDb(){
         return (av<bv?-1:av>bv?1:0)*(value?.ascending===false?-1:1);
       });
     }
+    const totalCount=rows.length;
     if(q.limit)rows=rows.slice(0,q.limit);
-    return {data:q.single?(rows[0]||null):rows,error:null};
+    if(Number.isInteger(q.rangeStart))rows=rows.slice(q.rangeStart,q.rangeEnd+1);
+    return {data:q.single?(rows[0]||null):rows,error:null,count:q.wantCount?totalCount:null};
   };
   return {state,votes,query:fetchRows};
 }
@@ -177,6 +180,20 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       }
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
+      // Chronological history, boundaries and return to the latest entry.
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 2");
+      assert.equal(await teacher.locator("#projection-history-prev").isDisabled(),false);
+      assert.equal(await teacher.locator("#projection-history-next").isDisabled(),true);
+      await teacher.locator("#projection-history-prev").click();
+      assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes("Antigua"));
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 2");
+      assert.equal(await teacher.locator("#projection-history-prev").isDisabled(),true);
+      assert.equal(await teacher.locator("#projection-history-next").isDisabled(),false);
+      await teacher.locator("#projection-history-next").click();
+      assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes(expectedLatest));
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 2");
+      assert.equal(await teacher.locator("#projection-history-next").isDisabled(),true);
+      assert.equal(await student.locator("#projection-history-prev:visible").count(),0);
       // Only the letter size changes: the original card, dimensions and content stay intact.
       const zoomRead=()=>teacher.evaluate(()=>{
         const word=document.querySelector("#projection-word");
@@ -234,6 +251,16 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(backLayout.pageBreak,false);
       assert.equal(backLayout.storyPresent,true);
       assert.ok(db.state.byCourse.get(site.course).find(x=>x.id===revealed).explained,"Published before revealing");
+      // The newly revealed word becomes the latest; 'Anterior' returns to
+      // the former latest one, without losing the zoom or changing publication.
+      await teacher.locator("#projection-history-prev").waitFor({state:"visible"});
+      await teacher.waitForFunction(()=>!document.querySelector("#projection-history-prev").disabled,{timeout:10000});
+      await teacher.locator("#projection-history-prev").click();
+      assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes(expectedLatest));
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 3");
+      await teacher.locator("#projection-history-next").click();
+      assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes(db.state.byCourse.get(site.course).find(x=>x.id===revealed).words.term));
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 3");
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===3,{timeout:10000});
       await teacher.waitForFunction(()=>!document.querySelector("#projection-random").disabled,{timeout:10000});
