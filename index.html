@@ -762,6 +762,12 @@
     const maxHeight=Math.max(120,Math.min(window.innerHeight*.53,435,available));
     const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
     projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
+    // WebKit puede medir una copia más baja que la tarjeta real tras girar el iPad.
+    // Ajustamos con la altura desbordada real antes de reducir la tipografía.
+    const overflow=Math.max(0,face.scrollHeight-face.clientHeight);
+    if(overflow>2) {
+      projectionWord.style.height=Math.ceil(Math.min(maxHeight,projectionWord.clientHeight+overflow+3))+"px";
+    }
     const fits=()=>face.scrollHeight<=face.clientHeight+2;
     for(const scale of [1,.93,.86,.79,.72]) {
       face.style.setProperty("--projection-scale",String(scale));
@@ -1122,8 +1128,10 @@
     $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
     $("projection-prev").addEventListener("click",()=>displayProjectionPage(projectionPageIndex-1));
     $("projection-next").addEventListener("click",()=>displayProjectionPage(projectionPageIndex+1));
-    window.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
-    window.visualViewport?.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
+    // Safari estabiliza el tamaño de la ventana visual después del primer fotograma.
+    const refitAfterRotation=()=>requestAnimationFrame(()=>requestAnimationFrame(fitProjectionCard));
+    window.addEventListener("resize",refitAfterRotation);
+    window.visualViewport?.addEventListener("resize",refitAfterRotation);
     $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
