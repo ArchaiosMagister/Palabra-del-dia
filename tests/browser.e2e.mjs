@@ -166,6 +166,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       await student.locator("#cards .entry-preview").filter({hasText:term}).click();
       await student.locator("#entry-dialog .stars button").first().waitFor();
       await student.locator("#entry-dialog .stars button[data-rating='5']").click();
+      await student.locator("#notice").filter({hasText:"Tu valoración se ha guardado"}).waitFor({timeout:10000});
       assert.equal(db.votes.get(revealed),5);
       // Reverse publication as a teacher, verify votes persist and the card disappears.
       await teacher.locator("#presentation-close").click();
