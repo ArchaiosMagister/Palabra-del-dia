@@ -209,6 +209,7 @@ for (const {name,file} of sites) {
     const nodes={
       "presentation-dialog":{open:true},
       "projection-random":{disabled:false},
+      "projection-heading":{textContent:""},
       "projection-status":{textContent:""},
       "projection-word":{
         innerHTML:"",
@@ -222,7 +223,8 @@ for (const {name,file} of sites) {
       "$","isTeacher","currentUser","revealInProgress","pendingWords",
       "fetchPendingCandidates","randomPendingIndex","pendingCardMarkup",
       "updateWordPublication","explanationMarkup","document","window",
-      "requestAnimationFrame","syncPublicationChange","loadPendingWords","updateProjectionControls","fitProjectionCard"
+      "requestAnimationFrame","syncPublicationChange","loadPendingWords","updateProjectionControls","fitProjectionCard",
+      "updateProjectionHistoryControls","projectionHistoryNeedsRefresh","projectionHistoryIndex"
     ];
     const factory=new Function(...dependencies,code+"return revealRandomPendingWord;");
     const build=(teacher=true,candidates=[{id:"A",term:"A"},{id:"B",term:"B"}])=>
@@ -235,7 +237,8 @@ for (const {name,file} of sites) {
         document,mockWindow,callback=>callback(),
         async options=>{calls.push(["sync",options])},
         async()=>{calls.push("reload-pending")},
-        ()=>{calls.push("update-controls")},()=>{calls.push("fit")});
+        ()=>{calls.push("update-controls")},()=>{calls.push("fit")},
+        ()=>{},false,0);
     await build()();
     assert.deepEqual(calls.slice(0,4),["fetch",["choose",2],["front","B"],["publish","B",true]]);
     assert.ok(calls.some(x=>Array.isArray(x)&&x[0]==="flip"));
