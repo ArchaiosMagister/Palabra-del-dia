@@ -378,7 +378,51 @@
     .site-icon-help summary{cursor:pointer;list-style-position:inside}
     .site-icon-help p{max-width:440px;margin:6px 0 0 auto;line-height:1.45;text-align:left}
     @media(max-width:640px){.theme-control{flex-wrap:wrap}.site-update-status,.site-icon-help p{max-width:100%}}
-  </style>
+  
+    .pending-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+    .pending-card{perspective:1300px;min-height:305px;min-width:0}
+    .pending-card-inner{position:relative;min-height:305px;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.2,.7,.25,1)}
+    .pending-card.is-revealed .pending-card-inner{transform:rotateY(180deg)}
+    .pending-face{position:absolute;inset:0;box-sizing:border-box;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow-y:auto;background:var(--paper2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:clamp(18px,3vw,30px);box-shadow:var(--shadow)}
+    .pending-face-back{transform:rotateY(180deg);text-align:left}
+    .pending-face-front{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+    .pending-face h3{font:600 clamp(29px,5vw,45px)/1.12 "Crimson Pro",Georgia,serif;color:var(--red);overflow-wrap:anywhere;margin:12px 0}
+    .pending-label{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .pending-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px}
+    .pending-buttons button{min-height:44px}
+    .pending-face .entry-label{margin-top:15px}
+    .pending-face .entry-text{overflow-wrap:anywhere}
+    .pending-card.is-transferring{animation:pending-depart .45s ease-in forwards}
+    @keyframes pending-depart{to{opacity:0;transform:translateY(-25px) scale(.95)}}
+    .presentation-dialog{position:fixed;inset:0;margin:0;box-sizing:border-box;width:100vw;height:100dvh;max-width:none;max-height:none;padding:clamp(12px,3vw,36px);border:0;background:var(--paper);color:var(--ink);overflow-y:auto}
+    .presentation-dialog::backdrop{background:rgba(0,0,0,.9)}
+    .presentation-top{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1050px;margin:0 auto 20px}
+    .presentation-top strong{font:600 clamp(20px,3vw,30px) "Crimson Pro",Georgia,serif;color:var(--red)}
+    .presentation-top button{min-height:44px}
+    .presentation-stage{max-width:960px;margin:auto}
+    .presentation-stage .pending-card,.presentation-stage .pending-card-inner{min-height:min(70dvh,750px)}
+    .presentation-stage .pending-face h3{font-size:clamp(38px,8vw,82px)}
+    .presentation-stage .pending-face-back h3{font-size:clamp(30px,5vw,54px)}
+    .presentation-stage .pending-face-back{font-size:clamp(16px,2vw,23px)}
+    @media(prefers-reduced-motion:reduce){.pending-card-inner{transition:none!important}.pending-card.is-transferring{animation:none!important}}
+
+    /* Proyección: únicamente una ficha y controles públicos para el aula. */
+    #teacher-projection-open{font-weight:700}
+    .projection-heading{text-align:center;font-size:clamp(14px,2vw,20px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 15px}
+    .projection-word{max-width:940px;margin:0 auto}
+    .projection-word .word-card{padding:clamp(20px,4vw,46px);min-height:min(46dvh,460px)}
+    .projection-word .word-card h3{font:600 clamp(38px,7vw,78px)/1.1 "Crimson Pro",Georgia,serif;color:var(--red);overflow-wrap:anywhere;margin:0 0 20px}
+    .projection-word .word-card .entry-text{overflow-wrap:anywhere;font-size:clamp(16px,2.3vw,25px)}
+    .projection-controls{display:grid;justify-items:center;gap:8px;max-width:900px;margin:25px auto 0;text-align:center}
+    .projection-controls button{min-height:56px;padding:12px 22px;font-size:clamp(16px,2vw,23px);max-width:100%}
+    .projection-controls .small{margin:0;color:var(--muted)}
+    .projection-controls button:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+    .projection-word .pending-card,.projection-word .pending-card-inner{min-height:min(48dvh,490px)}
+    .projection-word .pending-face h3{font-size:clamp(34px,6vw,72px)}
+    .projection-word .pending-face-back h3{font-size:clamp(30px,5vw,52px)}
+    .projection-word .pending-face-back{font-size:clamp(16px,2.2vw,24px)}
+
+</style>
 </head>
 <body>
 <header>
@@ -406,6 +450,8 @@
     </div>
     <nav aria-label="Secciones">
       <button id="tab-dictionary" class="active" type="button">Diccionario</button>
+      <button id="tab-pending" class="hidden" type="button">Palabras no explicadas</button>
+      <button id="teacher-projection-open" class="hidden" type="button">Modo proyección</button>
       <button id="tab-ranking" type="button">Clasificación general</button>
       <button id="tab-personal" class="hidden" type="button">Clasificación personal</button>
     </nav>
@@ -477,6 +523,13 @@
     </section>
     <section id="review-panel" class="review-panel hidden" aria-live="polite"></section>
     <dialog id="entry-dialog" class="entry-dialog" aria-label="Ficha completa"><div id="entry-dialog-content" class="dialog-inner"></div></dialog>
+  </section>
+
+  <section id="pending-view" class="hidden" aria-labelledby="pending-heading">
+    <h2 id="pending-heading" class="section-title">Palabras no explicadas</h2>
+    <p class="section-note">Solo visible para el profesor. Pulsa «Revelar» para mostrar la explicación y desbloquear la votación.</p>
+    <p id="pending-count" class="small" role="status" aria-live="polite"></p>
+    <div id="pending-list" class="pending-list"><div class="empty">Cargando palabras pendientes…</div></div>
   </section>
   <section id="ranking" class="hidden">
     <div class="toolbar">
@@ -575,6 +628,19 @@
   body.qr-printing #student-qr-image img,body.qr-printing #student-qr-image canvas { print-color-adjust:exact; }
 }
 </style>
+
+<dialog id="presentation-dialog" class="presentation-dialog" aria-label="Modo proyección de Palabra del día">
+  <div class="presentation-top"><strong>Palabra del día</strong><button type="button" id="presentation-close" class="secondary">Salir del modo proyección ✕</button></div>
+  <div id="presentation-stage" class="presentation-stage">
+    <h2 class="projection-heading">Última palabra explicada</h2>
+    <div id="projection-word" class="projection-word" aria-live="polite"></div>
+    <div class="projection-controls">
+      <button id="projection-random" type="button" class="primary" disabled>Revelar palabra al azar</button>
+      <p id="projection-count" class="small" aria-live="polite"></p>
+      <p id="projection-status" class="small" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</dialog>
 <footer><em>Non scholæ, sed vitæ discimus.</em></footer>
 <script>
 (() => {
@@ -589,6 +655,218 @@
   let studentLinkCheck = null;
 
   const $ = id => document.getElementById(id);
+
+  // Las explicaciones pendientes solo se consultan tras validar al profesor.
+  let pendingWords=[], revealInProgress=false, wordSyncRunning=null;
+
+  function explanationMarkup(word) {
+    return '<h3>'+formatText(word.term)+'</h3>'+
+      (word.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(word.origin)+'</p>':'')+
+      (word.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(word.definition)+'</p>':'')+
+      (word.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(word.story)+'</p>':'')+
+      (!(word.origin||word.definition||word.story)?'<p class="small">Todavía no hay información adicional para esta palabra.</p>':'')+
+      '<p class="small">✓ Explicada · Votación desbloqueada</p>';
+  }
+
+  function pendingCardMarkup(word,showActions=true) {
+    return '<article class="pending-card" data-pending-id="'+escapeHtml(word.id)+'"><div class="pending-card-inner">'+
+      '<div class="pending-face pending-face-front"><span class="pending-label">🔒 Aún no explicada</span>'+
+      '<h3>'+formatText(word.term)+'</h3><p class="small">La explicación está oculta y no se puede votar.</p>'+
+      (showActions?'<div class="pending-buttons"><button class="primary" type="button" data-reveal-id="'+escapeHtml(word.id)+'">Revelar</button></div>':'')+
+      '</div></div></article>';
+  }
+
+  function renderPendingWords() {
+    if(!isTeacher) return;
+    $("pending-count").textContent=pendingWords.length+" "+(pendingWords.length===1?"palabra pendiente":"palabras pendientes");
+    $("pending-list").innerHTML=pendingWords.length
+      ? pendingWords.map(w=>pendingCardMarkup(w)).join("")
+      : '<div class="empty">Todas las palabras de este curso están explicadas.</div>';
+  }
+
+  async function loadPendingWords() {
+    if(!isTeacher || revealInProgress) return;
+    try {
+      const rows=await fetchPendingCandidates();
+      if(!isTeacher || revealInProgress) return;
+      pendingWords=rows;
+      renderPendingWords();
+      updateProjectionControls();
+    } catch(error) {
+      if(!isTeacher) return;
+      pendingWords=[];
+      $("pending-list").innerHTML='<div class="empty">No se han podido cargar las palabras pendientes.</div>';
+      if($("presentation-dialog").open) {
+        $("projection-random").disabled=true;
+        $("projection-status").textContent="No se ha podido consultar el listado de palabras pendientes.";
+      }
+      console.warn("No se han podido leer las palabras pendientes:",error);
+    }
+  }
+
+
+  // Para que el sorteo sea equitativo incluso si hay rechazo por módulo.
+  function randomPendingIndex(length) {
+    if(!Number.isSafeInteger(length) || length<1 || length>0x100000000) throw new RangeError("No hay candidaturas válidas.");
+    const range=0x100000000, limit=range-(range%length), sample=new Uint32Array(1);
+    do { window.crypto.getRandomValues(sample); } while(sample[0]>=limit);
+    return sample[0]%length;
+  }
+
+  async function fetchPendingCandidates() {
+    if(!isTeacher || !currentUser) throw new Error("Se requiere sesión de profesor.");
+    const {data,error}=await client.from("course_words")
+      .select("id,explained,words(term,origin,definition,story)")
+      .eq("course_id",SITE_COURSE_ID).eq("explained",false);
+    if(error) throw error;
+    return (data||[]).filter(row=>row.words && row.explained===false)
+      .map(row=>({id:row.id,...row.words}))
+      .sort((a,b)=>a.term.localeCompare(b.term,"es"));
+  }
+
+  function updateProjectionControls() {
+    const button=$("projection-random");
+    const count=pendingWords.length;
+    button.disabled=!isTeacher || revealInProgress || count===0;
+    $("projection-count").textContent=count===0
+      ? "No quedan palabras pendientes para revelar."
+      : count+" "+(count===1?"palabra pendiente":"palabras pendientes")+".";
+  }
+
+  async function loadLastExplainedForProjection() {
+    if(!isTeacher || !$("presentation-dialog").open || revealInProgress) return;
+    const {data,error}=await client.from("course_words")
+      .select("id,explained,explained_at,words(term,origin,definition,story)")
+      .eq("course_id",SITE_COURSE_ID).eq("explained",true)
+      .order("explained_at",{ascending:false,nullsFirst:false})
+      .order("id",{ascending:true}).limit(1).maybeSingle();
+    if(!isTeacher || !$("presentation-dialog").open || revealInProgress) return;
+    if(error) {
+      $("projection-word").innerHTML='<p class="empty">No se ha podido consultar la última palabra explicada.</p>';
+      $("projection-status").textContent="Comprueba la conexión y vuelve a entrar en modo proyección.";
+      return;
+    }
+    $("projection-word").innerHTML=data?.words
+      ? '<article class="word-card">'+explanationMarkup(data.words)+'</article>'
+      : '<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
+  }
+
+  async function openProjectionMode() {
+    if(!isTeacher || !currentUser || revealInProgress) return;
+    const dialog=$("presentation-dialog");
+    $("projection-word").innerHTML='<p class="empty">Cargando última palabra explicada…</p>';
+    $("projection-status").textContent="";
+    $("projection-random").disabled=true;
+    if(!dialog.open) dialog.showModal();
+    await Promise.allSettled([loadLastExplainedForProjection(),loadPendingWords()]);
+    if(isTeacher && dialog.open) updateProjectionControls();
+  }
+
+  async function revealRandomPendingWord() {
+    if(!isTeacher || !currentUser || revealInProgress || !$("presentation-dialog").open) return;
+    revealInProgress=true;
+    const button=$("projection-random");
+    button.disabled=true;
+    const status=$("projection-status");
+    status.textContent="Seleccionando una palabra pendiente al azar…";
+    let revealed=false;
+    try {
+      // Consultamos candidaturas actuales, no una lista almacenada en el navegador.
+      const candidates=await fetchPendingCandidates();
+      if(!isTeacher || !currentUser) return;
+      pendingWords=candidates;
+      if(!candidates.length) {
+        status.textContent="Todas las palabras de este curso están explicadas.";
+        return;
+      }
+      const word=candidates[randomPendingIndex(candidates.length)];
+      const container=$("projection-word");
+      container.innerHTML=pendingCardMarkup(word,false);
+      const card=container.querySelector(".pending-card");
+      // El giro presenta primero el título, sin mostrar ninguna explicación aún.
+      await updateWordPublication(word.id,true);
+      const back=document.createElement("div");
+      back.className="pending-face pending-face-back";
+      back.innerHTML=explanationMarkup(word);
+      card.querySelector(".pending-card-inner").append(back);
+      if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise(resolve=>setTimeout(resolve,350));
+      }
+      requestAnimationFrame(()=>card.classList.add("is-revealed"));
+      revealed=true;
+      status.textContent="Palabra revelada y votación desbloqueada.";
+      if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise(resolve=>setTimeout(resolve,820));
+      }
+    } catch(error) {
+      console.warn("No se ha podido revelar la palabra aleatoria:",error);
+      status.textContent="No se pudo revelar la palabra. Comprueba la conexión y vuelve a intentarlo.";
+      // La ficha fallida no sustituye la última palabra explicada.
+      $("projection-word").innerHTML='<p class="empty">Consultando última palabra explicada…</p>';
+    } finally {
+      // Synchronize public views without replacing the newly revealed projected card.
+      revealInProgress=false;
+      await syncPublicationChange({preserveProjection:revealed});
+      await loadPendingWords();
+      updateProjectionControls();
+    }
+  }
+
+  async function updateWordPublication(courseWordId,explained) {
+    if(!isTeacher || !currentUser) throw new Error("Se requiere una sesión de profesor activa.");
+    const {data,error}=await client.from("course_words")
+      .update({explained,explained_at:explained?new Date().toISOString():null})
+      .eq("id",courseWordId).eq("course_id",SITE_COURSE_ID).eq("explained",!explained).select("id");
+    if(error || !data?.length) throw error||new Error("Esta palabra ya ha cambiado de estado. Actualiza la lista.");
+  }
+
+  async function syncPublicationChange(options={}) {
+    if(!selectedCourse || revealInProgress) return;
+    if(wordSyncRunning) return wordSyncRunning;
+    wordSyncRunning=(async()=>{
+      await loadEntries();
+      if($("entry-dialog").open && !entries.some(e=>e.id===$("entry-dialog").dataset.wordId)) $("entry-dialog").close();
+      if(reviewDeck.some(w=>!entries.some(e=>e.id===w.id))) stopReview();
+      if(isTeacher) await loadAdminEntries();
+      await loadRankings(selectedCourse);
+      if(isTeacher && $("presentation-dialog").open && !revealInProgress && !options.preserveProjection) await loadLastExplainedForProjection();
+    })().catch(error=>console.warn("No se han podido sincronizar las palabras:",error))
+      .finally(()=>{wordSyncRunning=null;});
+    return wordSyncRunning;
+  }
+
+  async function revealPendingWord(courseWordId,button) {
+    if(!isTeacher || revealInProgress) return;
+    const word=pendingWords.find(w=>w.id===courseWordId);
+    if(!word) return;
+    const card=button.closest(".pending-card");
+    const presenting=!!button.closest("#presentation-dialog");
+    revealInProgress=true;
+    button.disabled=true;
+    try {
+      // Primero se confirma el estado y el permiso de voto en la base de datos.
+      await updateWordPublication(courseWordId,true);
+      const back=document.createElement("div");
+      back.className="pending-face pending-face-back";
+      back.innerHTML=explanationMarkup(word);
+      card.querySelector(".pending-card-inner").append(back);
+      requestAnimationFrame(()=>card.classList.add("is-revealed"));
+      if(!presenting && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise(resolve=>setTimeout(resolve,830));
+        card.classList.add("is-transferring");
+        await new Promise(resolve=>setTimeout(resolve,440));
+      }
+      showNotice("Palabra revelada. Ya está entre las explicadas y se puede votar.");
+    } catch(error) {
+      console.warn("No se ha podido revelar la palabra:",error);
+      showNotice("No se ha podido revelar la palabra. "+(error.message||"Revisa tu conexión."));
+      button.disabled=false;
+    } finally {
+      revealInProgress=false;
+      await syncPublicationChange();
+    }
+  }
+
   const qrAccessCode = (() => {
     const hash = window.location.hash;
     if (!hash.startsWith("#access=")) return null;
@@ -660,16 +938,30 @@
     $("site-update").addEventListener("click", () => void updateSite());
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
+    $("tab-pending").addEventListener("click", () => switchTab("pending"));
+    $("teacher-projection-open").addEventListener("click", () => void openProjectionMode());
     $("tab-personal").addEventListener("click", () => switchTab("personal"));
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
     $("word-sort").addEventListener("change", renderEntries);
+
+    $("pending-list").addEventListener("click",event=>{
+      const button=event.target.closest("button");
+      if(button?.dataset.revealId) void revealPendingWord(button.dataset.revealId,button);
+    });
+    $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
+    $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) checkStudentLink(); });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { checkStudentLink(); void syncPublicationChange(); } });
+    // Solo se propaga una revisión numérica; nunca el contenido de las fichas pendientes.
+    client.channel("publication-"+SITE_COURSE_ID)
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"word_revisions",filter:"course_id=eq."+SITE_COURSE_ID},
+        ()=>{ if(!document.hidden) void syncPublicationChange(); }).subscribe();
+    window.setInterval(()=>{if(!document.hidden) void syncPublicationChange();},30000);
     window.addEventListener("focus", () => checkStudentLink());
     window.setInterval(() => { if (!document.hidden) checkStudentLink(); }, 60000);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
@@ -711,11 +1003,13 @@
 
   function switchTab(tab) {
     if(tab==="personal" && !student) tab="dictionary";
+    if(tab==="pending" && !isTeacher) tab="dictionary";
     activeTab=tab;
     $("dictionary").classList.toggle("hidden",tab!=="dictionary");
     $("ranking").classList.toggle("hidden",tab!=="ranking");
+    $("pending-view").classList.toggle("hidden",tab!=="pending");
     $("personal-ranking").classList.toggle("hidden",tab!=="personal");
-    for(const [buttonId,name] of [["tab-dictionary","dictionary"],["tab-ranking","ranking"],["tab-personal","personal"]]){
+    for(const [buttonId,name] of [["tab-dictionary","dictionary"],["tab-pending","pending"],["tab-ranking","ranking"],["tab-personal","personal"]]){
       const button=$(buttonId);
       button.classList.toggle("active",tab===name);
       if(tab===name) button.setAttribute("aria-current","page");
@@ -723,6 +1017,7 @@
     }
     if(tab==="ranking") void loadRankings($("rank-course-select").value || selectedCourse);
     if(tab==="personal") renderPersonalRanking();
+    if(tab==="pending" && !revealInProgress) void loadPendingWords();
   }
 
   async function loadCourses() {
@@ -745,6 +1040,7 @@
       .eq("course_id",selectedCourse).eq("explained",true);
     if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
     entries=(data||[]).filter(row=>row.words).map(row=>({...row.words,...row})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    if($("entry-dialog").open && !entries.some(e=>e.id===$("entry-dialog").dataset.wordId)) $("entry-dialog").close();
     myVotes = new Map();
     if (student) {
       const {data: ownVotes, error: votesError} = await client.from("votes")
@@ -819,7 +1115,15 @@
     if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
-    if(!isTeacher) $("teacher-visit-count").textContent="—";
+    $("tab-pending").classList.toggle("hidden",!isTeacher);
+    $("teacher-projection-open").classList.toggle("hidden",!isTeacher);
+    if(!isTeacher) {
+      pendingWords=[];
+      $("pending-list").replaceChildren();
+      $("teacher-visit-count").textContent="—";
+      if(activeTab==="pending") switchTab("dictionary");
+      if($("presentation-dialog").open) $("presentation-dialog").close();
+    }
     updateSessionUI();
   }
 
@@ -859,6 +1163,7 @@
 
   async function loadAdminEntries() {
     if(!isTeacher) return;
+    void loadPendingWords();
     $("admin-list").innerHTML='<div class="empty">Cargando palabras…</div>';
     const {data,error}=await client.from("course_words")
       .select("id,explained,words(term)")
@@ -870,7 +1175,7 @@
       '<div class="admin-row"><span class="admin-term">'+formatText(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
       '<button type="button" class="'+(r.explained?'mark-pending':'mark-explained')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
-      (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
+      (r.explained?'Volver a marcar como no explicada':'Marcar como explicada')+'</button></div></div>'
     ).join("");
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
       btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
@@ -1031,18 +1336,14 @@
   async function setExplained(courseWordId,explained,button) {
     if(!isTeacher) return;
     button.disabled=true;
-    const {error}=await client.from("course_words")
-      .update({explained,explained_at:explained?new Date().toISOString():null})
-      .eq("id",courseWordId);
-    if(error) {
-      showNotice("No se ha podido actualizar el estado. El acceso de profesor debe estar activo.");
-      button.disabled=false;
-      return;
-    }
-    showNotice(explained?"Palabra marcada como explicada.":"Palabra marcada como pendiente.");
-    await loadAdminEntries();
-    await loadEntries();
-    await loadRankings(selectedCourse);
+    try {
+      await updateWordPublication(courseWordId,explained);
+      showNotice(explained?"Palabra marcada como explicada. Votación abierta.":"Palabra marcada como no explicada. Votación bloqueada; votos anteriores conservados.");
+      await syncPublicationChange();
+    } catch(error) {
+      console.warn("No se pudo cambiar el estado de la palabra:",error);
+      showNotice("No se ha podido actualizar el estado. "+(error.message||"Comprueba el acceso del profesor."));
+    } finally { button.disabled=false; }
   }
 
   async function activateStudent() {
@@ -1291,6 +1592,7 @@
 
   function openEntry(entryId) {
     const e=entries.find(item=>item.id===entryId);
+    if(e) $("entry-dialog").dataset.wordId=entryId;
     if(!e) return;
     const ownCourse=student && (student.student_group==="bachillerato_2" || student.course_id===selectedCourse);
     const average=ratingFor(e);
@@ -1366,7 +1668,7 @@
 
   async function vote(courseWordId,rating,button) {
     await checkStudentLink();
-    if(!student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
+    if(!entries.some(e=>e.id===courseWordId) || !student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
     const buttons=[...button.parentElement.querySelectorAll("button")];
     buttons.forEach(b=>b.disabled=true);
     const {error}=await client.from("votes").upsert(
