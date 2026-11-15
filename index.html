@@ -629,6 +629,114 @@
   let studentLinkCheck = null;
 
   const $ = id => document.getElementById(id);
+
+  // Las explicaciones pendientes solo se consultan tras validar al profesor.
+  let pendingWords=[], revealInProgress=false, wordSyncRunning=null;
+
+  function explanationMarkup(word) {
+    return '<h3>'+formatText(word.term)+'</h3>'+
+      (word.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(word.origin)+'</p>':'')+
+      (word.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(word.definition)+'</p>':'')+
+      (word.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(word.story)+'</p>':'')+
+      (!(word.origin||word.definition||word.story)?'<p class="small">Todavía no hay información adicional para esta palabra.</p>':'')+
+      '<p class="small">✓ Explicada · Votación desbloqueada</p>';
+  }
+
+  function pendingCardMarkup(word,presenting=false) {
+    return '<article class="pending-card" data-pending-id="'+escapeHtml(word.id)+'"><div class="pending-card-inner">'+
+      '<div class="pending-face pending-face-front"><span class="pending-label">🔒 Aún no explicada</span>'+
+      '<h3>'+formatText(word.term)+'</h3><p class="small">La explicación está oculta y no se puede votar.</p>'+
+      '<div class="pending-buttons"><button class="primary" type="button" data-reveal-id="'+escapeHtml(word.id)+'">Revelar</button>'+
+      (presenting?'':'<button class="secondary" type="button" data-present-id="'+escapeHtml(word.id)+'">Presentar a pantalla completa</button>')+
+      '</div></div></div></article>';
+  }
+
+  function renderPendingWords() {
+    if(!isTeacher) return;
+    $("pending-count").textContent=pendingWords.length+" "+(pendingWords.length===1?"palabra pendiente":"palabras pendientes");
+    $("pending-list").innerHTML=pendingWords.length
+      ? pendingWords.map(w=>pendingCardMarkup(w)).join("")
+      : '<div class="empty">Todas las palabras de este curso están explicadas.</div>';
+  }
+
+  async function loadPendingWords() {
+    if(!isTeacher || revealInProgress) return;
+    const {data,error}=await client.from("course_words")
+      .select("id,explained,words(term,origin,definition,story)")
+      .eq("course_id",SITE_COURSE_ID).eq("explained",false);
+    if(!isTeacher || revealInProgress) return;
+    if(error) {
+      $("pending-list").innerHTML='<div class="empty">No se han podido cargar las palabras pendientes.</div>';
+      console.warn("No se han podido leer las palabras pendientes:",error);
+      return;
+    }
+    pendingWords=(data||[]).filter(row=>row.words).map(row=>({id:row.id,...row.words}))
+      .sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    renderPendingWords();
+  }
+
+  function presentPendingWord(courseWordId) {
+    if(!isTeacher || revealInProgress) return;
+    const word=pendingWords.find(w=>w.id===courseWordId);
+    if(!word) return;
+    $("presentation-stage").innerHTML=pendingCardMarkup(word,true);
+    if(!$("presentation-dialog").open) $("presentation-dialog").showModal();
+  }
+
+  async function updateWordPublication(courseWordId,explained) {
+    if(!isTeacher || !currentUser) throw new Error("Se requiere una sesión de profesor activa.");
+    const {data,error}=await client.from("course_words")
+      .update({explained,explained_at:explained?new Date().toISOString():null})
+      .eq("id",courseWordId).eq("course_id",SITE_COURSE_ID).eq("explained",!explained).select("id");
+    if(error || !data?.length) throw error||new Error("Esta palabra ya ha cambiado de estado. Actualiza la lista.");
+  }
+
+  async function syncPublicationChange() {
+    if(!selectedCourse || revealInProgress) return;
+    if(wordSyncRunning) return wordSyncRunning;
+    wordSyncRunning=(async()=>{
+      await loadEntries();
+      if($("entry-dialog").open && !entries.some(e=>e.id===$("entry-dialog").dataset.wordId)) $("entry-dialog").close();
+      if(reviewDeck.some(w=>!entries.some(e=>e.id===w.id))) stopReview();
+      if(isTeacher) await loadAdminEntries();
+      await loadRankings(selectedCourse);
+    })().catch(error=>console.warn("No se han podido sincronizar las palabras:",error))
+      .finally(()=>{wordSyncRunning=null;});
+    return wordSyncRunning;
+  }
+
+  async function revealPendingWord(courseWordId,button) {
+    if(!isTeacher || revealInProgress) return;
+    const word=pendingWords.find(w=>w.id===courseWordId);
+    if(!word) return;
+    const card=button.closest(".pending-card");
+    const presenting=!!button.closest("#presentation-dialog");
+    revealInProgress=true;
+    button.disabled=true;
+    try {
+      // Primero se confirma el estado y el permiso de voto en la base de datos.
+      await updateWordPublication(courseWordId,true);
+      const back=document.createElement("div");
+      back.className="pending-face pending-face-back";
+      back.innerHTML=explanationMarkup(word);
+      card.querySelector(".pending-card-inner").append(back);
+      requestAnimationFrame(()=>card.classList.add("is-revealed"));
+      if(!presenting) {
+        await new Promise(resolve=>setTimeout(resolve,830));
+        card.classList.add("is-transferring");
+        await new Promise(resolve=>setTimeout(resolve,440));
+      }
+      showNotice("Palabra revelada. Ya está entre las explicadas y se puede votar.");
+    } catch(error) {
+      console.warn("No se ha podido revelar la palabra:",error);
+      showNotice("No se ha podido revelar la palabra. "+(error.message||"Revisa tu conexión."));
+      button.disabled=false;
+    } finally {
+      revealInProgress=false;
+      await syncPublicationChange();
+    }
+  }
+
   const qrAccessCode = (() => {
     const hash = window.location.hash;
     if (!hash.startsWith("#access=")) return null;
@@ -700,16 +808,33 @@
     $("site-update").addEventListener("click", () => void updateSite());
     $("tab-dictionary").addEventListener("click", () => switchTab("dictionary"));
     $("tab-ranking").addEventListener("click", () => switchTab("ranking"));
+    $("tab-pending").addEventListener("click", () => switchTab("pending"));
     $("tab-personal").addEventListener("click", () => switchTab("personal"));
     $("course-select").addEventListener("change", async e => { selectedCourse=e.target.value; await loadEntries(); if(student) await loadStudentProposals(); if(isTeacher) { await loadAdminEntries(); await loadTeacherReports(); await loadTeacherProposals(); } });
     $("rank-course-select").addEventListener("change", async e => { await loadRankings(e.target.value); });
     $("search").addEventListener("input", renderEntries);
     $("word-sort").addEventListener("change", renderEntries);
+
+    $("pending-list").addEventListener("click",event=>{
+      const button=event.target.closest("button");
+      if(button?.dataset.revealId) void revealPendingWord(button.dataset.revealId,button);
+      else if(button?.dataset.presentId) presentPendingWord(button.dataset.presentId);
+    });
+    $("presentation-stage").addEventListener("click",event=>{
+      const button=event.target.closest("button[data-reveal-id]");
+      if(button) void revealPendingWord(button.dataset.revealId,button);
+    });
+    $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
     $("entry-dialog").addEventListener("click", e => { if(e.target === $("entry-dialog")) $("entry-dialog").close(); });
     $("activate").addEventListener("click", activateStudent);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) checkStudentLink(); });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { checkStudentLink(); void syncPublicationChange(); } });
+    // Solo se propaga una revisión numérica; nunca el contenido de las fichas pendientes.
+    client.channel("publication-"+SITE_COURSE_ID)
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"word_revisions",filter:"course_id=eq."+SITE_COURSE_ID},
+        ()=>{ if(!document.hidden) void syncPublicationChange(); }).subscribe();
+    window.setInterval(()=>{if(!document.hidden) void syncPublicationChange();},30000);
     window.addEventListener("focus", () => checkStudentLink());
     window.setInterval(() => { if (!document.hidden) checkStudentLink(); }, 60000);
     $("invite-code").addEventListener("keydown", e => { if(e.key==="Enter") activateStudent(); });
@@ -751,11 +876,13 @@
 
   function switchTab(tab) {
     if(tab==="personal" && !student) tab="dictionary";
+    if(tab==="pending" && !isTeacher) tab="dictionary";
     activeTab=tab;
     $("dictionary").classList.toggle("hidden",tab!=="dictionary");
     $("ranking").classList.toggle("hidden",tab!=="ranking");
+    $("pending-view").classList.toggle("hidden",tab!=="pending");
     $("personal-ranking").classList.toggle("hidden",tab!=="personal");
-    for(const [buttonId,name] of [["tab-dictionary","dictionary"],["tab-ranking","ranking"],["tab-personal","personal"]]){
+    for(const [buttonId,name] of [["tab-dictionary","dictionary"],["tab-pending","pending"],["tab-ranking","ranking"],["tab-personal","personal"]]){
       const button=$(buttonId);
       button.classList.toggle("active",tab===name);
       if(tab===name) button.setAttribute("aria-current","page");
@@ -763,6 +890,7 @@
     }
     if(tab==="ranking") void loadRankings($("rank-course-select").value || selectedCourse);
     if(tab==="personal") renderPersonalRanking();
+    if(tab==="pending" && !revealInProgress) void loadPendingWords();
   }
 
   async function loadCourses() {
@@ -785,6 +913,7 @@
       .eq("course_id",selectedCourse).eq("explained",true);
     if(error) { $("cards").innerHTML='<div class="empty">No se han podido cargar las fichas.</div>'; return; }
     entries=(data||[]).filter(row=>row.words).map(row=>({...row.words,...row})).sort((a,b)=>a.term.localeCompare(b.term,"es"));
+    if($("entry-dialog").open && !entries.some(e=>e.id===$("entry-dialog").dataset.wordId)) $("entry-dialog").close();
     myVotes = new Map();
     if (student) {
       const {data: ownVotes, error: votesError} = await client.from("votes")
@@ -859,7 +988,14 @@
     if(!isTeacher) { visibleStudentCodes.clear(); $("student-code-result").replaceChildren(); $("student-code-result").classList.add("hidden"); $("teacher-students").replaceChildren(); }
     $("teacher-access").classList.toggle("hidden",isTeacher);
     $("teacher-admin").classList.toggle("hidden",!isTeacher);
-    if(!isTeacher) $("teacher-visit-count").textContent="—";
+    $("tab-pending").classList.toggle("hidden",!isTeacher);
+    if(!isTeacher) {
+      pendingWords=[];
+      $("pending-list").replaceChildren();
+      $("teacher-visit-count").textContent="—";
+      if(activeTab==="pending") switchTab("dictionary");
+      if($("presentation-dialog").open) $("presentation-dialog").close();
+    }
     updateSessionUI();
   }
 
@@ -899,6 +1035,7 @@
 
   async function loadAdminEntries() {
     if(!isTeacher) return;
+    void loadPendingWords();
     $("admin-list").innerHTML='<div class="empty">Cargando palabras…</div>';
     const {data,error}=await client.from("course_words")
       .select("id,explained,words(term)")
@@ -910,7 +1047,7 @@
       '<div class="admin-row"><span class="admin-term">'+formatText(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
       '<button type="button" class="'+(r.explained?'mark-pending':'mark-explained')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
-      (r.explained?'Marcar pendiente':'Marcar explicada')+'</button></div></div>'
+      (r.explained?'Volver a marcar como no explicada':'Marcar como explicada')+'</button></div></div>'
     ).join("");
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
       btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
@@ -1071,18 +1208,14 @@
   async function setExplained(courseWordId,explained,button) {
     if(!isTeacher) return;
     button.disabled=true;
-    const {error}=await client.from("course_words")
-      .update({explained,explained_at:explained?new Date().toISOString():null})
-      .eq("id",courseWordId);
-    if(error) {
-      showNotice("No se ha podido actualizar el estado. El acceso de profesor debe estar activo.");
-      button.disabled=false;
-      return;
-    }
-    showNotice(explained?"Palabra marcada como explicada.":"Palabra marcada como pendiente.");
-    await loadAdminEntries();
-    await loadEntries();
-    await loadRankings(selectedCourse);
+    try {
+      await updateWordPublication(courseWordId,explained);
+      showNotice(explained?"Palabra marcada como explicada. Votación abierta.":"Palabra marcada como no explicada. Votación bloqueada; votos anteriores conservados.");
+      await syncPublicationChange();
+    } catch(error) {
+      console.warn("No se pudo cambiar el estado de la palabra:",error);
+      showNotice("No se ha podido actualizar el estado. "+(error.message||"Comprueba el acceso del profesor."));
+    } finally { button.disabled=false; }
   }
 
   async function activateStudent() {
@@ -1345,6 +1478,7 @@
 
   function openEntry(entryId) {
     const e=entries.find(item=>item.id===entryId);
+    if(e) $("entry-dialog").dataset.wordId=entryId;
     if(!e) return;
     const ownCourse=student && (student.student_group==="bachillerato_2" || student.course_id===selectedCourse);
     const average=ratingFor(e);
@@ -1420,7 +1554,7 @@
 
   async function vote(courseWordId,rating,button) {
     await checkStudentLink();
-    if(!student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
+    if(!entries.some(e=>e.id===courseWordId) || !student || (student.student_group!=="bachillerato_2" && student.course_id!==selectedCourse)) return;
     const buttons=[...button.parentElement.querySelectorAll("button")];
     buttons.forEach(b=>b.disabled=true);
     const {error}=await client.from("votes").upsert(
