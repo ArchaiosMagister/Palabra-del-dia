@@ -137,6 +137,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
         await page.route("https://fonts.googleapis.com/**",route=>route.fulfill({status:200,contentType:"text/css",body:""}));
         await page.route("https://fonts.gstatic.com/**",route=>route.fulfill({status:204,body:""}));
         page.on("pageerror",error=>errors.push(role+": "+error.message));
+        page.on("console",msg=>{if(["warning","error"].includes(msg.type())) errors.push(role+" console: "+msg.text());});
       }
       const url="http://127.0.0.1:"+listen.port+site.route;
       await Promise.all([teacher.goto(url,{waitUntil:"domcontentloaded"}),student.goto(url,{waitUntil:"domcontentloaded"})]);
