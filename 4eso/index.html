@@ -439,6 +439,15 @@
     .projection-word .entry-text,.projection-word .pending-face-back .entry-text{font-size:1em;line-height:1.25;margin:.12em 0 .43em;overflow-wrap:anywhere}
     .projection-word .small,.projection-word .pending-face-back .small{font-size:.7em;line-height:1.25;margin:.5em 0}
     .projection-word .pending-face-front h3{font-size:clamp(30px,6vw,70px)}
+
+    /* Tarjeta compacta: vuelve a su tamaño natural sin ocupar toda la pantalla. */
+    .presentation-stage{justify-content:center}
+    .projection-word{position:relative;flex:0 0 auto;height:auto;max-height:100%;width:100%;margin:0 auto;overflow:hidden}
+    .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
+    .projection-pagination:not(.is-active){display:none}
+    .projection-word .word-card{position:relative}
+    .projection-controls{margin-top:clamp(8px,1.5dvh,16px)}
+
     .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
     .projection-controls button{min-height:44px;padding:8px 16px;font-size:clamp(15px,1.9vw,20px)}
     .projection-controls .small{font-size:clamp(11px,1.3vw,14px);line-height:1.2;max-width:100%}
@@ -735,7 +744,48 @@
     projectionPages=[];
     face.style.setProperty("--projection-scale","1");
     updateProjectionPagination();
-    const fits=()=>face.scrollHeight<=face.clientHeight+2;
+    const projectionWord=$("projection-word");
+    // Medimos el contenido real, pero limitamos la tarjeta a una altura moderada.
+    // El resto de la pantalla queda libre y no se convierte en una tarjeta vacía.
+    projectionWord.style.height="auto";
+    const measuringFace=face.cloneNode(true);
+    Object.assign(measuringFace.style,{
+      position:"absolute",inset:"0 0 auto 0",height:"auto",minHeight:"0",maxHeight:"none",
+      width:"100%",transform:"none",overflow:"visible",visibility:"hidden",pointerEvents:"none"
+    });
+    projectionWord.append(measuringFace);
+    const naturalHeight=Math.ceil(measuringFace.getBoundingClientRect().height);
+    measuringFace.remove();
+    const stage=$("presentation-stage");
+    const heading=stage.querySelector(".projection-heading");
+    const controls=stage.querySelector(".projection-controls");
+    const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-32;
+    const maxHeight=Math.max(120,Math.min(window.innerHeight*.50,410,available));
+    const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
+    // Una ficha ya explicada que cabe por sí sola mantiene altura natural:
+    // así Safari la reajusta al girar el iPad sin depender de medidas antiguas.
+    if(face.classList.contains("word-card") && naturalHeight+24<maxHeight) {
+      projectionWord.style.height="auto";
+      face.style.removeProperty("--projection-scale");
+      return;
+    }
+    projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
+    // WebKit puede medir una copia más baja que la tarjeta real tras girar el iPad.
+    // Ajustamos con la altura desbordada real antes de reducir la tipografía.
+    // En WebKit una cara girada en 3D puede devolver scrollHeight obsoleto.
+    // El fondo de cada elemento tiene que quedar dentro del área visible real.
+    const textExtent=()=>{
+      const bottom=[...face.children].reduce((max,node)=>Math.max(max,node.offsetTop+node.offsetHeight),0);
+      return bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0);
+    };
+    // En una cara 3D, scrollHeight puede ser como mínimo la altura de la tarjeta.
+    // Solo contamos su exceso, no toda esa altura como si fuera texto.
+    const overflow=Math.max(0,face.scrollHeight-face.clientHeight,textExtent()+20-face.clientHeight);
+    if(overflow>2) {
+      projectionWord.style.height=Math.ceil(Math.min(maxHeight,projectionWord.clientHeight+overflow+3))+"px";
+    }
+    // Combinamos los dos cálculos: la posición de los elementos y el desbordamiento.
+    const fits=()=>textExtent()+20<=face.clientHeight && face.scrollHeight<=face.clientHeight+2;
     for(const scale of [1,.93,.86,.79,.72]) {
       face.style.setProperty("--projection-scale",String(scale));
       if(fits()) return;
@@ -1095,8 +1145,10 @@
     $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
     $("projection-prev").addEventListener("click",()=>displayProjectionPage(projectionPageIndex-1));
     $("projection-next").addEventListener("click",()=>displayProjectionPage(projectionPageIndex+1));
-    window.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
-    window.visualViewport?.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
+    // Safari estabiliza el tamaño de la ventana visual después del primer fotograma.
+    const refitAfterRotation=()=>requestAnimationFrame(()=>requestAnimationFrame(fitProjectionCard));
+    window.addEventListener("resize",refitAfterRotation);
+    window.visualViewport?.addEventListener("resize",refitAfterRotation);
     $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());

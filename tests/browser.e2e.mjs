@@ -160,6 +160,11 @@ test("Real-browser teacher projection and student realtime regression",async()=>
           const controls=document.querySelector(".projection-controls");
           return {dialogOverflow:dialog.scrollHeight-dialog.clientHeight,
             faceOverflow:face?face.scrollHeight-face.clientHeight:0,
+            faceScroll:face?.scrollHeight,faceClient:face?.clientHeight,
+            currentScale:face?.style.getPropertyValue("--projection-scale"),
+            page:document.querySelector("#projection-page-count")?.textContent,
+            pageButtonsVisible:getComputedStyle(document.querySelector("#projection-pagination")).display,
+            faceTextLength:face?.textContent.length,
             wordHeight:word?.clientHeight,
             controlsBottom:controls?.getBoundingClientRect().bottom,
             windowHeight:window.innerHeight};
@@ -167,6 +172,8 @@ test("Real-browser teacher projection and student realtime regression",async()=>
         assert.ok(sizes.dialogOverflow<=3,label+": dialog must not scroll: "+JSON.stringify(sizes));
         assert.ok(sizes.faceOverflow<=3,label+": content must fit its slide: "+JSON.stringify(sizes));
         assert.ok(sizes.wordHeight>100,label+": card has usable height: "+JSON.stringify(sizes));
+        assert.ok(sizes.wordHeight<=Math.min(440,sizes.windowHeight*.54)+4,
+          label+": projected card must remain compact: "+JSON.stringify(sizes));
         assert.ok(sizes.controlsBottom<=sizes.windowHeight+3,label+": controls not clipped: "+JSON.stringify(sizes));
       }
       await teacher.locator("#presentation-dialog[open] #projection-word").waitFor();
