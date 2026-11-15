@@ -887,11 +887,6 @@
       projectionWord.style.height=maxHeight+"px";
       displayProjectionPage(projectionPageIndex);
     } finally {
-      // Métricas de diagnóstico del ajuste sobre Safari/WebKit.
-      probe.innerHTML=face.innerHTML;
-      projectionWord.dataset.probeHeight=String(Math.ceil(probe.getBoundingClientRect().height));
-      projectionWord.dataset.probeWidth=String(Math.ceil(probe.getBoundingClientRect().width));
-      projectionWord.dataset.faceWidth=String(Math.ceil(face.getBoundingClientRect().width));
       probe.remove();
       projectionWord.dataset.layoutReady="true";
     }
