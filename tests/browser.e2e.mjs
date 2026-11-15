@@ -101,13 +101,17 @@ function mockDb(){
       f.operator==="eq"?row[f.key]===f.value:
       f.operator==="gt"?row[f.key]>f.value:
       f.operator==="in"?f.value.includes(row[f.key]):true));
-    for(const {key,value} of q.orders||[]){
-      rows.sort((a,b)=>{
+    // Supabase applies order clauses lexicographically (first clause is primary).
+    rows.sort((a,b)=>{
+      for(const {key,value} of q.orders||[]){
         const av=a[key]??null,bv=b[key]??null;
-        if(av===null||bv===null)return av===bv?0:av===null?(value?.nullsFirst?-1:1):(value?.nullsFirst?1:-1);
-        return (av<bv?-1:av>bv?1:0)*(value?.ascending===false?-1:1);
-      });
-    }
+        const cmp=av===null||bv===null
+          ? av===bv?0:av===null?(value?.nullsFirst?-1:1):(value?.nullsFirst?1:-1)
+          : (av<bv?-1:av>bv?1:0)*(value?.ascending===false?-1:1);
+        if(cmp!==0)return cmp;
+      }
+      return 0;
+    });
     const totalCount=rows.length;
     if(q.limit)rows=rows.slice(0,q.limit);
     if(Number.isInteger(q.rangeStart))rows=rows.slice(q.rangeStart,q.rangeEnd+1);
