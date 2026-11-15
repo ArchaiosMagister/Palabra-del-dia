@@ -71,7 +71,7 @@ function mockDb(){
     if(q.table==="courses") rows=[{id:q.course,name:"2026-2027",is_active:true}];
     else if(q.table==="teacher_admins") rows=q.role==="teacher"?[{auth_user_id:"mock-teacher"}]:[];
     else if(q.table==="students") rows=q.role==="student"?[{id:"mock-student-record",auth_user_id:"mock-student",course_id:q.course,student_group:"course",display_name:"Alumno de prueba",created_at:"2026-01-01"}]:[];
-    else if(q.table==="course_words") rows=state.byCourse.get(q.course).map(row=>({...row,words:{...row.words}}));
+    else if(q.table==="course_words") rows=state.byCourse.get(q.course).map(row=>{const words={...row.words};if(!q.select?.includes("words(id,")) delete words.id;return {...row,words};});
     else if(q.table==="votes") rows=[...votes.entries()].map(([course_word_id,rating])=>({course_word_id,student_id:"mock-student-record",rating}));
     else if(q.table==="site_visit_counters") rows=[{course_id:q.course,total_visits:42}];
     else if(q.table==="word_proposals") rows=[];
