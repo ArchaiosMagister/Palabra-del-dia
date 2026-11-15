@@ -40,7 +40,9 @@ const mockSdk=String.raw`
   const authUser={id:role==="teacher"?"mock-teacher":role==="student"?"mock-student":null};
   window.supabase={createClient:()=>({
     from,
-    rpc:async()=>({data:1,error:null}),
+    rpc:async(name,args)=>name==="manage_teacher_word"
+      ?window.__mockQuery({table:"rpc/manage_teacher_word",args,role,course:site})
+      :({data:1,error:null}),
     auth:{
       getSession:async()=>({data:{session:role==="visitor"?null:{user:authUser}},error:null}),
       getUser:async()=>({data:{user:authUser},error:null}),
@@ -72,7 +74,32 @@ function mockDb(){
   const longExplanation=("Una explicación extensa con ejemplos etimológicos para probar el giro original de la tarjeta. ").repeat(42);
   for(const rows of state.byCourse.values()) for(const row of rows) if(!row.explained) row.words.story=longExplanation;
   const votes=new Map();
+  let generatedWords=0;
   const fetchRows=async q=>{
+    if(q.table==="rpc/manage_teacher_word"){
+      if(q.role!=="teacher"||q.args?.p_course_id!==q.course)
+        return {data:null,error:{message:"Solo el profesor puede gestionar palabras"}};
+      const a=q.args, rows=state.byCourse.get(q.course);
+      const term=String(a.p_term||"").trim();
+      if(!["create","update"].includes(a.p_action) || !term || term.length>160
+        || ["p_origin","p_definition"].some(k=>String(a[k]||"").trim().length>4000)
+        || String(a.p_story||"").trim().length>12000)
+        return {data:null,error:{message:"Revisa la longitud de los campos de la ficha"}};
+      const current=a.p_action==="update"?rows.find(row=>row.id===a.p_course_word_id):null;
+      if(a.p_action==="update"&&!current)
+        return {data:null,error:{message:"La ficha no pertenece a este curso"}};
+      if(rows.some(row=>row.id!==current?.id&&row.words.term.trim().toLocaleLowerCase()===term.toLocaleLowerCase()))
+        return {data:null,error:{message:"Ya existe una palabra con ese título en este curso"}};
+      const words={term,origin:String(a.p_origin||"").trim(),definition:String(a.p_definition||"").trim(),story:String(a.p_story||"").trim()};
+      if(a.p_action==="create"){
+        generatedWords++;
+        const id=q.course+"-manual-"+generatedWords,wordId="word-manual-"+generatedWords;
+        rows.push({id,course_id:q.course,word_id:wordId,words:{id:wordId,...words},explained:false,explained_at:null});
+        return {data:{action:"create",word_id:wordId,course_word_id:id,explained:false},error:null};
+      }
+      Object.assign(current.words,words);
+      return {data:{action:"update",word_id:current.words.id,course_word_id:current.id,explained:current.explained},error:null};
+    }
     let rows=[];
     if(q.table==="courses") rows=[{id:q.course,name:"2026-2027",is_active:true}];
     else if(q.table==="teacher_admins") rows=q.role==="teacher"?[{auth_user_id:"mock-teacher"}]:[];
@@ -290,7 +317,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       // Reverse publication as a teacher, verify votes persist and the card disappears.
       await teacher.locator("#presentation-close").click();
       await teacher.locator("#tab-dictionary").click();
-      await teacher.locator("#teacher-admin details.teacher-fold").first().locator("summary").click();
+      await teacher.locator("#teacher-admin details.teacher-fold").filter({hasText:"Administración del diccionario"}).locator("summary").click();
       const management=teacher.locator('#admin-list button[data-course-word="'+revealed+'"]');
       await management.waitFor();
       await management.click();
@@ -298,6 +325,63 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===2,{timeout:10000});
       assert.equal(db.votes.get(revealed),5,"Historical rating is never deleted by undo");
+
+      // Only the teacher can create words. The preview preserves the public
+      // card's labels and escapes HTML rather than executing submitted markup.
+      const forbidden=await student.evaluate(async course_id=>{
+        const sdk=window.supabase.createClient();
+        return sdk.rpc("manage_teacher_word",{
+          p_action:"create",p_course_id:course_id,p_course_word_id:null,
+          p_term:"Prohibida",p_origin:"",p_definition:"",p_story:""
+        });
+      },site.course);
+      assert.match(forbidden.error?.message||"",/Solo el profesor/);
+      assert.ok(!db.state.byCourse.get(site.course).some(row=>row.words.term==="Prohibida"));
+
+      await teacher.locator("#teacher-word-manager > summary").click();
+      const newTerm="Palabra añadida "+site.name;
+      await teacher.locator("#teacher-word-term").fill(newTerm);
+      await teacher.locator("#teacher-word-origin").fill("Del latín <script>alert(1)</script>");
+      await teacher.locator("#teacher-word-definition").fill("Primera definición de la palabra.");
+      await teacher.locator("#teacher-word-story").fill("Curiosidad de la ficha nueva.");
+      assert.ok((await teacher.locator("#teacher-word-preview-card").innerText()).includes("Primera definición"));
+      assert.equal(await teacher.locator("#teacher-word-preview-card script").count(),0,"Preview escapes injected markup");
+      assert.equal(await teacher.locator("#teacher-word-preview-card .entry-label").count(),3,"Preview follows existing card structure");
+      await teacher.locator("#teacher-word-save").click();
+      await teacher.locator("#teacher-word-message").filter({hasText:"Palabra guardada como pendiente"}).waitFor({timeout:10000});
+      const created=db.state.byCourse.get(site.course).find(row=>row.words.term===newTerm);
+      assert.ok(created && !created.explained && created.explained_at===null,"New words are unpublished");
+      const createdId=created.id;
+      await student.evaluate(()=>window.__emitWordUpdate());
+      await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===2,{timeout:10000});
+      assert.equal(await student.locator("#cards").filter({hasText:newTerm}).count(),0,"Students must not see pending words");
+
+      // Edits preserve the unique course-word identity and do not open voting.
+      await teacher.locator("#teacher-word-definition").fill("Significado editado desde el profesor.");
+      await teacher.locator("#teacher-word-save").click();
+      await teacher.locator("#teacher-word-message").filter({hasText:"Cambios guardados"}).waitFor({timeout:10000});
+      assert.equal(db.state.byCourse.get(site.course).find(row=>row.id===createdId).words.definition,"Significado editado desde el profesor.");
+      assert.equal(db.state.byCourse.get(site.course).filter(row=>row.id===createdId).length,1,"Editing never duplicates an ID");
+
+      // Duplicates are rejected in the database; the existing record survives.
+      await teacher.locator("#teacher-word-term").fill("Antigua");
+      await teacher.locator("#teacher-word-save").click();
+      await teacher.locator("#teacher-word-message").filter({hasText:"Ya existe una palabra"}).waitFor({timeout:10000});
+      assert.equal(db.state.byCourse.get(site.course).find(row=>row.id===createdId).words.term,newTerm);
+
+      // Editing an already-explained card retains its publication timestamp.
+      const prior=db.state.byCourse.get(site.course).find(row=>row.id===site.name+"-prior");
+      const priorDate=prior.explained_at;
+      await teacher.locator("#admin-list .admin-row").filter({hasText:"Antigua"}).locator("[data-edit-course-word]").click();
+      assert.equal(await teacher.locator("#teacher-word-term").inputValue(),"Antigua");
+      await teacher.locator("#teacher-word-term").fill("Antigua revisada");
+      await teacher.locator("#teacher-word-save").click();
+      await teacher.locator("#teacher-word-message").filter({hasText:"Cambios guardados"}).waitFor({timeout:10000});
+      assert.equal(prior.id,site.name+"-prior");
+      assert.equal(prior.explained_at,priorDate);
+      await student.evaluate(()=>window.__emitWordUpdate());
+      await student.locator("#cards .entry-preview").filter({hasText:"Antigua revisada"}).waitFor({timeout:10000});
+      assert.equal(db.votes.get(revealed),5,"Word editing never deletes past votes");
       assert.ok(errors.length===0,errors.join("\n"));
       await teacherContext.close();
       await studentContext.close();

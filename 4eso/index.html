@@ -203,6 +203,21 @@
     .teacher-fold[open]>summary::after{content:"−"}
     .teacher-fold-content{padding-top:12px}.teacher-fold-content>.section-note{text-align:center}
     .admin-list{display:grid;gap:8px}
+    .teacher-word-form{display:grid;gap:12px;margin:12px auto 0;max-width:760px}
+    .teacher-word-form h3{margin:0}
+    .teacher-word-form label{display:grid;gap:5px;min-width:0;color:var(--muted);font-size:13px;font-weight:600}
+    .teacher-word-form input,.teacher-word-form textarea{width:100%;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--paper2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+    .teacher-word-form textarea{min-height:88px;resize:vertical;line-height:1.5}
+    .teacher-word-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .teacher-word-actions button{min-height:44px}
+    .teacher-word-form #teacher-word-message{margin:0;min-height:1.5em}
+    .teacher-word-preview{max-width:760px;margin:20px auto 0}
+    .teacher-word-preview h3{margin:0 0 10px}
+    .teacher-word-preview .word-card h3{font:600 32px/1.16 "Crimson Pro",Georgia,serif;color:var(--red);overflow-wrap:anywhere;margin:0 0 12px}
+    .teacher-word-preview .word-card .entry-text{overflow-wrap:anywhere}
+    .admin-state button.teacher-word-edit-btn{min-width:115px}
+    @media(max-width:560px){.teacher-word-actions button{flex:1}.teacher-word-preview .word-card h3{font-size:28px}}
+
     .teacher-report{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
     .student-name-list{display:grid;gap:8px}
     .student-name-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,2fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:#f5faff}
@@ -603,6 +618,36 @@
       </div>
       <button type="button" id="refresh-visit-count" class="secondary">Actualizar</button>
     </div>
+    <details class="teacher-fold" id="teacher-word-manager">
+      <summary>Añadir o editar palabras</summary>
+      <div class="teacher-fold-content">
+        <p class="section-note">Crea una ficha con el formato del diccionario. Las palabras nuevas se guardan como pendientes y solo se mostrarán a los alumnos después de explicarlas.</p>
+        <form id="teacher-word-form" class="teacher-word-form">
+          <h3 id="teacher-word-form-title" class="admin-term">Nueva palabra</h3>
+          <label>Palabra o expresión
+            <input id="teacher-word-term" name="term" type="text" maxlength="160" required placeholder="Escribe la palabra o expresión">
+          </label>
+          <label>Origen
+            <textarea id="teacher-word-origin" name="origin" maxlength="4000" placeholder="Etimología y lengua de procedencia…"></textarea>
+          </label>
+          <label>Significado
+            <textarea id="teacher-word-definition" name="definition" maxlength="4000" placeholder="Explicación del significado…"></textarea>
+          </label>
+          <label>Más información
+            <textarea id="teacher-word-story" name="story" maxlength="12000" placeholder="Historia, curiosidades, ejemplos…"></textarea>
+          </label>
+          <div class="teacher-word-actions">
+            <button id="teacher-word-save" type="submit" class="primary">Guardar como pendiente</button>
+            <button id="teacher-word-new" type="button" class="secondary">Nueva ficha</button>
+          </div>
+          <p id="teacher-word-message" class="small" role="status" aria-live="polite"></p>
+        </form>
+        <div class="teacher-word-preview">
+          <h3 class="admin-term">Vista previa de la tarjeta</h3>
+          <article id="teacher-word-preview-card" class="word-card" aria-label="Vista previa de la ficha"></article>
+        </div>
+      </div>
+    </details>
     <details class="teacher-fold">
       <summary>Administración del diccionario</summary>
       <div class="teacher-fold-content">
@@ -710,13 +755,13 @@
     $("projection-zoom-in").disabled=next===PROJECTION_ZOOM_MAX;
   }
 
-  function explanationMarkup(word) {
+  function explanationMarkup(word,showStatus=true) {
     return '<h3>'+formatText(word.term)+'</h3>'+
       (word.origin?'<div class="entry-label">Origen</div><p class="entry-text">'+formatText(word.origin)+'</p>':'')+
       (word.definition?'<div class="entry-label">Significado</div><p class="entry-text">'+formatText(word.definition)+'</p>':'')+
       (word.story?'<div class="entry-label">Más información</div><p class="entry-text">'+formatText(word.story)+'</p>':'')+
       (!(word.origin||word.definition||word.story)?'<p class="small">Todavía no hay información adicional para esta palabra.</p>':'')+
-      '<p class="small">✓ Explicada · Votación desbloqueada</p>';
+      (showStatus?'<p class="small">✓ Explicada · Votación desbloqueada</p>':'');
   }
 
   function pendingCardMarkup(word,showActions=true) {
@@ -1140,6 +1185,10 @@
     $("logout").addEventListener("click", logout);
     $("teacher-logout").addEventListener("click", logout);
     $("proposal-submit").addEventListener("click", submitProposal);
+    $("teacher-word-form").addEventListener("input",renderTeacherWordPreview);
+    $("teacher-word-form").addEventListener("submit",event=>void saveTeacherWord(event));
+    $("teacher-word-new").addEventListener("click",resetTeacherWordForm);
+    renderTeacherWordPreview();
     $("create-student").addEventListener("click",()=>manageStudent("create",null,$("create-student")));
     $("student-qr-close-button").addEventListener("click",()=> $("student-qr-dialog").close());
     $("student-qr-print-button").addEventListener("click",()=> { document.body.classList.add("qr-printing"); window.print(); });
@@ -1282,6 +1331,14 @@
     $("teacher-projection-open").classList.toggle("hidden",!isTeacher);
     if(!isTeacher) {
       pendingWords=[];
+      adminWordRows.clear();
+      editingTeacherCourseWordId=null;
+      $("teacher-word-form").reset();
+      $("teacher-word-form-title").textContent="Nueva palabra";
+      $("teacher-word-save").textContent="Guardar como pendiente";
+      $("teacher-word-message").textContent="";
+      $("teacher-word-manager").open=false;
+      renderTeacherWordPreview();
       $("pending-list").replaceChildren();
       $("teacher-visit-count").textContent="—";
       if(activeTab==="pending") switchTab("dictionary");
@@ -1324,24 +1381,124 @@
     } finally { button.disabled=false; }
   }
 
+  // Las fichas se crean/editan mediante una operación atómica de Supabase.
+  // La vista previa usa el mismo marcado de la tarjeta normal, sin publicarla.
+  let editingTeacherCourseWordId=null, adminWordRows=new Map(), teacherWordSaving=false;
+
+  function teacherWordFormValues() {
+    return {
+      term:$("teacher-word-term").value.trim(),
+      origin:$("teacher-word-origin").value.trim(),
+      definition:$("teacher-word-definition").value.trim(),
+      story:$("teacher-word-story").value.trim()
+    };
+  }
+
+  function renderTeacherWordPreview() {
+    const values=teacherWordFormValues();
+    $("teacher-word-preview-card").innerHTML=explanationMarkup({
+      ...values,term:values.term||"Palabra o expresión"
+    },false);
+  }
+
+  function resetTeacherWordForm() {
+    if(teacherWordSaving) return;
+    editingTeacherCourseWordId=null;
+    $("teacher-word-form").reset();
+    $("teacher-word-form-title").textContent="Nueva palabra";
+    $("teacher-word-save").textContent="Guardar como pendiente";
+    $("teacher-word-message").textContent="";
+    renderTeacherWordPreview();
+  }
+
+  function editTeacherWord(courseWordId) {
+    if(!isTeacher || teacherWordSaving) return;
+    const row=adminWordRows.get(courseWordId);
+    if(!row?.words) return;
+    editingTeacherCourseWordId=courseWordId;
+    for(const field of ["term","origin","definition","story"])
+      $("teacher-word-"+field).value=row.words[field]||"";
+    $("teacher-word-form-title").textContent="Editar palabra";
+    $("teacher-word-save").textContent="Guardar cambios";
+    $("teacher-word-message").textContent=row.explained
+      ? "Esta ficha ya está explicada: sus modificaciones serán visibles para los alumnos."
+      : "Esta ficha sigue pendiente de explicar.";
+    $("teacher-word-manager").open=true;
+    renderTeacherWordPreview();
+    $("teacher-word-manager").scrollIntoView({block:"start"});
+    $("teacher-word-term").focus({preventScroll:true});
+  }
+
+  async function saveTeacherWord(event) {
+    event.preventDefault();
+    if(!isTeacher || !currentUser || teacherWordSaving) return;
+    const values=teacherWordFormValues();
+    const message=$("teacher-word-message"),button=$("teacher-word-save");
+    if(!values.term || values.term.length>160 ||
+      values.origin.length>4000 || values.definition.length>4000 || values.story.length>12000) {
+      message.textContent="Escribe una palabra válida y respeta los límites de longitud.";
+      $("teacher-word-term").focus();
+      return;
+    }
+    const action=editingTeacherCourseWordId?"update":"create";
+    const courseWordId=editingTeacherCourseWordId,courseId=selectedCourse;
+    teacherWordSaving=true;
+    button.disabled=true;
+    $("teacher-word-new").disabled=true;
+    message.textContent=action==="create"?"Guardando la palabra…":"Guardando los cambios…";
+    try {
+      const {data,error}=await client.rpc("manage_teacher_word",{
+        p_action:action,p_course_id:courseId,p_course_word_id:courseWordId,
+        p_term:values.term,p_origin:values.origin,
+        p_definition:values.definition,p_story:values.story
+      });
+      if(error) throw error;
+      if(!data?.course_word_id) throw new Error("Supabase no ha confirmado la ficha guardada.");
+      if(!isTeacher || selectedCourse!==courseId) return;
+      editingTeacherCourseWordId=data.course_word_id;
+      $("teacher-word-form-title").textContent="Editar palabra";
+      button.textContent="Guardar cambios";
+      message.textContent=action==="create"
+        ? "Palabra guardada como pendiente. Puedes revelarla desde el modo proyección."
+        : "Cambios guardados. Se conservan el historial y las votaciones.";
+      await syncPublicationChange();
+      await loadAdminEntries();
+    } catch(error) {
+      // Los duplicados son un error docente previsto, no un fallo de consola.
+      if(!String(error.message||"").includes("Ya existe una palabra"))
+        console.warn("No se ha podido guardar la ficha del profesor:",error);
+      if(isTeacher) message.textContent=error.message||"No se ha podido guardar la ficha. Comprueba la conexión.";
+    } finally {
+      teacherWordSaving=false;
+      button.disabled=false;
+      $("teacher-word-new").disabled=false;
+    }
+  }
+
   async function loadAdminEntries() {
     if(!isTeacher) return;
     void loadPendingWords();
+    adminWordRows.clear();
     $("admin-list").innerHTML='<div class="empty">Cargando palabras…</div>';
     const {data,error}=await client.from("course_words")
-      .select("id,explained,words(term)")
+      .select("id,explained,words(term,origin,definition,story)")
       .eq("course_id",selectedCourse);
     if(error) { $("admin-list").innerHTML='<div class="empty">No se ha podido cargar la administración.</div>'; return; }
     const rows=(data||[]).filter(r=>r.words).sort((a,b)=>a.words.term.localeCompare(b.words.term,"es"));
     if(!rows.length) { $("admin-list").innerHTML='<div class="empty">Este curso todavía no tiene palabras.</div>'; return; }
+    adminWordRows=new Map(rows.map(row=>[row.id,row]));
     $("admin-list").innerHTML=rows.map(r=>
       '<div class="admin-row"><span class="admin-term">'+formatText(r.words.term)+'</span>'+
       '<div class="admin-state"><span class="small">'+(r.explained?'Explicada':'Pendiente')+'</span>'+
+      '<button type="button" class="secondary teacher-word-edit-btn" data-edit-course-word="'+escapeHtml(r.id)+'">Editar ficha</button>'+
       '<button type="button" class="'+(r.explained?'mark-pending':'mark-explained')+'" data-course-word="'+escapeHtml(r.id)+'" data-next="'+(!r.explained)+'">'+
       (r.explained?'Volver a marcar como no explicada':'Marcar como explicada')+'</button></div></div>'
     ).join("");
     $("admin-list").querySelectorAll("button[data-course-word]").forEach(btn=>
       btn.addEventListener("click",()=>setExplained(btn.dataset.courseWord,btn.dataset.next==="true",btn))
+    );
+    $("admin-list").querySelectorAll("button[data-edit-course-word]").forEach(btn=>
+      btn.addEventListener("click",()=>editTeacherWord(btn.dataset.editCourseWord))
     );
   }
 
