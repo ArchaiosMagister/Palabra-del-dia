@@ -445,6 +445,7 @@
     .projection-word{position:relative;flex:0 0 auto;height:auto;max-height:100%;width:100%;margin:0 auto;overflow:hidden}
     .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
     .projection-pagination:not(.is-active){display:none}
+    .projection-word .word-card{position:relative}
     .projection-controls{margin-top:clamp(8px,1.5dvh,16px)}
 
     .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
@@ -764,11 +765,17 @@
     projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
     // WebKit puede medir una copia más baja que la tarjeta real tras girar el iPad.
     // Ajustamos con la altura desbordada real antes de reducir la tipografía.
-    const overflow=Math.max(0,face.scrollHeight-face.clientHeight);
+    // En WebKit una cara girada en 3D puede devolver scrollHeight obsoleto.
+    // El fondo de cada elemento tiene que quedar dentro del área visible real.
+    const requiredHeight=()=>{
+      const bottom=[...face.children].reduce((max,node)=>Math.max(max,node.offsetTop+node.offsetHeight),0);
+      return bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0);
+    };
+    const overflow=Math.max(0,requiredHeight()-face.clientHeight);
     if(overflow>2) {
       projectionWord.style.height=Math.ceil(Math.min(maxHeight,projectionWord.clientHeight+overflow+3))+"px";
     }
-    const fits=()=>face.scrollHeight<=face.clientHeight+2;
+    const fits=()=>requiredHeight()<=face.clientHeight+2;
     for(const scale of [1,.93,.86,.79,.72]) {
       face.style.setProperty("--projection-scale",String(scale));
       if(fits()) return;
