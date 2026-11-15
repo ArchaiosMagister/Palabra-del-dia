@@ -65,11 +65,11 @@ function mockDb(){
       {id:site.name+"-pending2",course_id:site.course,explained:false,explained_at:null,words:{id:"w3",term:"Pendiente dos",origin:"Greek",definition:"Secreto dos",story:""}},
     ]);
   }
-  const longExplanation=("Una explicación con abundantes ejemplos etimológicos y referencias al vocabulario estudiado en clase. ").repeat(42);
+  // The first projection design shows complete entries, with scrolling when necessary.
+  const bachLatest=state.byCourse.get(sites[0].course).find(row=>row.id==="Bachillerato-latest");
+  bachLatest.words={...bachLatest.words,term:"Damocles",origin:"Griego",definition:"Mítico adulador áulico griego cuya historia se utilizaba para transmitir la enseñanza moral de que una posición de aparente privilegio conlleva una serie de contrapartidas que la pueden hacer indeseable.",story:"Damocles era un cortesano en el palacio del tirano Dionisio de Siracusa. En cierto momento, se dedicó a propagar lo supuestamente afortunado que era el gobernante de ostentar gran poder y riquezas, y Dionisio decidió darle un escarmiento: le cedió durante un día su puesto. Al final de ese mismo día se celebró un banquete en el que Damocles fue servido y tratado como un rey, con suntuosos manjares, bailarinas y lujos y disfrutes de todo tipo.\n\nSin embargo, al final del banquete, Damocles miró arriba y vio sobre su cabeza una espada que colgaba del techo atada por un pelo de la crin de un caballo. En ese momento, Damocles rechazó todo tipo de lujo y privilegio, abandonó el puesto del tirano Dionisio y dijo que ya no quería ser tan afortunado."};
+  const longExplanation=("Una explicación extensa con ejemplos etimológicos para probar el giro original de la tarjeta. ").repeat(42);
   for(const rows of state.byCourse.values()) for(const row of rows) if(!row.explained) row.words.story=longExplanation;
-  // Regression: actual public Bachillerato entry that previously generated 174 one-word slides.
-  const damocles=state.byCourse.get(sites[0].course).find(row=>row.id==="Bachillerato-latest");
-  damocles.words={...damocles.words,term:"Damocles",origin:"Griego",definition:"Mítico adulador áulico griego cuya historia se utilizaba para transmitir la enseñanza moral de que una posición de aparente privilegio conlleva una serie de contrapartidas que la pueden hacer indeseable.",story:"Damocles era un cortesano en el palacio del tirano Dionisio de Siracusa. En cierto momento, se dedicó a propagar lo supuestamente afortunado que era el gobernante de ostentar gran poder y riquezas, y Dionisio decidió darle un escarmiento: le cedió durante un día su puesto. Al final de ese mismo día se celebró un banquete en el que Damocles fue servido y tratado como un rey, con suntuosos manjares, bailarinas y lujos y disfrutes de todo tipo.\n\nSin embargo, al final del banquete, Damocles miró arriba y vio sobre su cabeza una espada que colgaba del techo atada por un pelo de la crin de un caballo. En ese momento, Damocles rechazó todo tipo de lujo y privilegio, abandonó el puesto del tirano Dionisio y dijo que ya no quería ser tan afortunado."};
   const votes=new Map();
   const fetchRows=async q=>{
     let rows=[];
@@ -155,86 +155,42 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(await student.locator("#teacher-projection-open:visible").count(),0,"Student must not see projection");
       assert.equal(await student.locator("#cards .entry-preview").count(),2,"Only two explained fixtures visible");
       await teacher.locator("#teacher-projection-open").click();
-      async function assertProjectionFits(label) {
-        const sizes=await teacher.evaluate(()=>{
-          const dialog=document.querySelector("#presentation-dialog");
-          const word=document.querySelector("#projection-word");
-          const face=word?.querySelector(".pending-face-back, .word-card");
-          const controls=document.querySelector(".projection-controls");
-          return {dialogOverflow:dialog.scrollHeight-dialog.clientHeight,
-            faceOverflow:face?face.scrollHeight-face.clientHeight:0,
-            faceScroll:face?.scrollHeight,faceClient:face?.clientHeight,
-            currentScale:face?.style.getPropertyValue("--projection-scale"),
-            page:document.querySelector("#projection-page-count")?.textContent,
-            pageButtonsVisible:getComputedStyle(document.querySelector("#projection-pagination")).display,
-            faceTextLength:face?.textContent.length,
-            faceBottomBlank:face && face.children.length ? Math.round(face.getBoundingClientRect().bottom-face.lastElementChild.getBoundingClientRect().bottom):0,
-            cardWidth:word?.clientWidth,
-            wordHeight:word?.clientHeight,
-            controlsBottom:controls?.getBoundingClientRect().bottom,
-            windowHeight:window.innerHeight};
-        });
-        assert.ok(sizes.dialogOverflow<=3,label+": dialog must not scroll: "+JSON.stringify(sizes));
-        assert.ok(sizes.faceOverflow<=3,label+": content must fit its slide: "+JSON.stringify(sizes));
-        assert.ok(sizes.wordHeight>100,label+": card has usable height: "+JSON.stringify(sizes));
-        assert.ok(sizes.cardWidth<=790,label+": card should not stretch across the whole iPad: "+JSON.stringify(sizes));
-        if(label.includes("latest")) {
-          assert.ok(sizes.faceBottomBlank<=66,label+": no excess blank space within the card: "+JSON.stringify(sizes));
-          if(site.name!=="Bachillerato") {
-            assert.ok(sizes.wordHeight<=290,label+": short card should fit its natural content: "+JSON.stringify(sizes));
-          }
-        }
-        assert.ok(sizes.wordHeight<=Math.min(440,sizes.windowHeight*.54)+4,
-          label+": projected card must remain compact: "+JSON.stringify(sizes));
-        assert.ok(sizes.controlsBottom<=sizes.windowHeight+3,label+": controls not clipped: "+JSON.stringify(sizes));
-      }
       await teacher.locator("#presentation-dialog[open] #projection-word").waitFor();
       const expectedLatest=site.name==="Bachillerato"?"Damocles":"Última explicada";
       await teacher.waitForFunction(term=>document.querySelector("#projection-word")?.textContent.includes(term),expectedLatest,{timeout:10000});
-      await teacher.waitForFunction(()=>document.querySelector("#projection-word")?.dataset.layoutReady==="true",undefined,{timeout:10000});
+      assert.equal(await teacher.locator("#projection-pagination").count(),0,"Original projection has no pagination");
+      assert.equal(await teacher.locator("#projection-prev").count(),0,"Original projection has no slide controls");
+      const projectionStyle=await teacher.evaluate(()=>{
+        const dialog=document.querySelector("#presentation-dialog");
+        const card=document.querySelector("#projection-word .word-card");
+        const word=document.querySelector("#projection-word");
+        return {overflow:getComputedStyle(dialog).overflowY,minHeight:getComputedStyle(card).minHeight,
+          wordHeight:word.style.height,wordMaxWidth:getComputedStyle(word).maxWidth};
+      });
+      assert.equal(projectionStyle.overflow,"auto","Original presentation must allow document scrolling");
+      assert.equal(projectionStyle.wordHeight,"","No dynamic card height in original projection");
+      assert.ok(parseFloat(projectionStyle.minHeight)>100,"Original word card has minimum display height");
+      if(site.name==="Bachillerato"){
+        const content=await teacher.locator("#projection-word .word-card").innerText();
+        assert.ok(content.includes("Damocles")&&content.includes("ya no quería ser tan afortunado"),
+          "Damocles must appear in full on a single card, without dividing the story into slides");
+      }
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
-      if(site.name==="Bachillerato") {
-        const pageLabel=(await teacher.locator("#projection-page-count").textContent()).trim();
-        const count=pageLabel?Number(pageLabel.split(" / ")[1]):1;
-        console.log("DAMOCLES-PAGINATION",site.name,pageLabel||"1 / 1");
-        assert.ok(Number.isInteger(count)&&count>=1&&count<=7,
-          "Damocles should be presented in a few readable slides, not one slide per word: "+pageLabel);
-        const firstSlideWords=(await teacher.locator("#projection-word .word-card").innerText()).split(/\s+/).filter(Boolean).length;
-        assert.ok(firstSlideWords>=16,"Damocles must show a readable block, not one word: "+firstSlideWords);
-        for(let i=1;i<count;i++) await teacher.locator("#projection-next").click();
-        const lastSlide=await teacher.locator("#projection-word .word-card").innerText();
-        assert.ok(lastSlide.includes("afortunado"),"The ending of the Damocles story must be preserved");
-        for(let i=count-1;i>0;i--) await teacher.locator("#projection-prev").click();
-      }
-      await assertProjectionFits(site.name+" latest landscape");
-      await teacher.setViewportSize({width:768,height:1024});
-      await teacher.waitForTimeout(100);
-      await assertProjectionFits(site.name+" latest portrait");
-      await teacher.setViewportSize({width:1024,height:768});
-      await teacher.waitForTimeout(100);
-      await assertProjectionFits(site.name+" latest landscape restored");
       await teacher.locator("#projection-random").click();
       assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"The reveal button is disabled immediately after activation");
       await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:15000});
       const revealed=await teacher.locator("#projection-word .pending-card").getAttribute("data-pending-id");
-      await teacher.waitForFunction(()=>document.querySelector("#projection-pagination").classList.contains("is-active"),{timeout:10000});
-      await assertProjectionFits(site.name+" revealed landscape");
-      const firstPage=await teacher.locator("#projection-page-count").textContent();
-      const pageCount=Number(firstPage.split(" / ")[1]);
-      assert.ok(pageCount>=2&&pageCount<=35,"The very long mock story must not produce one-word slides: "+firstPage);
-      const firstSlideWordCount=(await teacher.locator("#projection-word .pending-face-back").innerText()).split(/\s+/).filter(Boolean).length;
-      assert.ok(firstSlideWordCount>=4,"The first slide must contain more than the title: "+firstPage+", words="+firstSlideWordCount);
-      assert.match(firstPage,/^1 \/ (?:[2-9]|[1-9][0-9]+)$/,"Long explanation must be paginated without scroll");
-      await teacher.locator("#projection-next").click();
-      assert.match(await teacher.locator("#projection-page-count").textContent(),/^2 \/ /);
-      await assertProjectionFits(site.name+" second page");
-      await teacher.setViewportSize({width:768,height:1024});
-      await teacher.waitForTimeout(120);
-      await assertProjectionFits(site.name+" revealed portrait");
-      await teacher.setViewportSize({width:1024,height:768});
-      await teacher.waitForTimeout(120);
-      await assertProjectionFits(site.name+" revealed landscape after rotation");
+      const revealedCard=teacher.locator("#projection-word .pending-face-back");
+      assert.ok((await revealedCard.innerText()).includes("Una explicación extensa"),"Long explanation stays intact after revealing");
+      const backLayout=await revealedCard.evaluate(el=>({
+        overflow:getComputedStyle(el).overflowY,
+        pageBreak:!!el.closest("#projection-pagination"),
+        storyPresent:el.textContent.includes("Una explicación extensa"),
+      }));
+      assert.equal(backLayout.overflow,"auto","Original flip card scrolls within its back face if necessary");
+      assert.equal(backLayout.pageBreak,false);
+      assert.equal(backLayout.storyPresent,true);
       assert.ok(db.state.byCourse.get(site.course).find(x=>x.id===revealed).explained,"Published before revealing");
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===3,{timeout:10000});
