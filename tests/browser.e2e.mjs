@@ -160,6 +160,11 @@ test("Real-browser teacher projection and student realtime regression",async()=>
           const controls=document.querySelector(".projection-controls");
           return {dialogOverflow:dialog.scrollHeight-dialog.clientHeight,
             faceOverflow:face?face.scrollHeight-face.clientHeight:0,
+            faceScroll:face?.scrollHeight,faceClient:face?.clientHeight,
+            currentScale:face?.style.getPropertyValue("--projection-scale"),
+            page:document.querySelector("#projection-page-count")?.textContent,
+            pageButtonsVisible:getComputedStyle(document.querySelector("#projection-pagination")).display,
+            faceTextLength:face?.textContent.length,
             wordHeight:word?.clientHeight,
             controlsBottom:controls?.getBoundingClientRect().bottom,
             windowHeight:window.innerHeight};
