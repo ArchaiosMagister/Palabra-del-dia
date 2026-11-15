@@ -422,57 +422,6 @@
     .projection-word .pending-face-back h3{font-size:clamp(30px,5vw,52px)}
     .projection-word .pending-face-back{font-size:clamp(16px,2.2vw,24px)}
 
-    /* La pantalla de proyección ocupa exactamente el área visible del iPad. */
-    .presentation-dialog{display:flex;flex-direction:column;gap:0;width:100%;height:100dvh;max-height:100dvh;overflow:hidden;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
-    .presentation-dialog:not([open]){display:none}
-    .presentation-top{width:100%;min-height:0;flex:0 0 auto;margin:0 auto clamp(3px,1dvh,12px)}
-    .presentation-top strong{font-size:clamp(17px,2vw,25px)}
-    .presentation-top button{min-height:44px;padding:8px 12px}
-    .presentation-stage{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;width:100%;max-width:1050px;margin:0 auto}
-    .projection-heading{flex:0 0 auto;font-size:clamp(13px,1.6vw,19px);margin:0 0 clamp(4px,1dvh,10px)}
-    .projection-word{flex:1 1 auto;min-height:0;width:100%;max-width:none;overflow:hidden;margin:0}
-    .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
-    .projection-word .word-card,.projection-word .pending-face{overflow:hidden;padding:clamp(12px,2.2vmin,27px)}
-    .projection-word .word-card,.projection-word .pending-face-back{font-size:calc(clamp(17px,2.3vw,24px) * var(--projection-scale,1));line-height:1.24}
-    .projection-word .word-card h3,.projection-word .pending-face-back h3{font:600 calc(clamp(32px,5.5vw,68px) * var(--projection-scale,1))/1.09 "Crimson Pro",Georgia,serif;margin:0 0 .22em}
-    .projection-word .entry-label,.projection-word .pending-face-back .entry-label{font-size:.78em;margin:.6em 0 .1em}
-    .projection-word .entry-text,.projection-word .pending-face-back .entry-text{font-size:1em;line-height:1.25;margin:.12em 0 .43em;overflow-wrap:anywhere}
-    .projection-word .small,.projection-word .pending-face-back .small{font-size:.7em;line-height:1.25;margin:.5em 0}
-    .projection-word .pending-face-front h3{font-size:clamp(30px,6vw,70px)}
-
-    /* Tarjeta compacta: vuelve a su tamaño natural sin ocupar toda la pantalla. */
-    .presentation-stage{justify-content:center}
-    .projection-word{position:relative;flex:0 0 auto;height:auto;max-height:100%;width:100%;margin:0 auto;overflow:hidden}
-    .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
-    .projection-pagination:not(.is-active){display:none}
-    .projection-word .word-card{position:relative}
-
-    /* Maquetación compacta como la versión original: sin tarjeta estirada ni centrado vertical.
-       Mantener el margen inferior libre es preferible a fabricar un rectángulo vacío. */
-    .presentation-top,.presentation-stage{max-width:780px}
-    .presentation-stage{justify-content:flex-start}
-    .projection-word{flex:0 0 auto;max-width:780px}
-    .projection-word .word-card{height:auto;min-height:0;max-height:none;padding:clamp(15px,2.2vmin,24px)}
-    .projection-controls{margin-top:clamp(5px,1dvh,11px)}
-    .projection-heading{margin-bottom:clamp(5px,1dvh,10px)}
-    .projection-controls{margin-top:clamp(8px,1.5dvh,16px)}
-
-    .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
-    .projection-controls button{min-height:44px;padding:8px 16px;font-size:clamp(15px,1.9vw,20px)}
-    .projection-controls .small{font-size:clamp(11px,1.3vw,14px);line-height:1.2;max-width:100%}
-    .projection-pagination{display:flex;gap:10px;align-items:center;justify-content:center;min-height:44px}
-    .projection-pagination:not(.is-active){visibility:hidden}
-    .projection-pagination button{min-height:40px;padding:6px 14px;font-size:14px}
-    .projection-pagination span{min-width:54px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
-    @media(max-height:620px){
-      .presentation-dialog{padding-top:6px;padding-bottom:6px}
-      .presentation-top{margin-bottom:2px}
-      .projection-heading{margin-bottom:3px}
-      .projection-controls{margin-top:3px}
-      .projection-pagination{min-height:40px}
-      .projection-controls button{min-height:42px}
-    }
-
 
 </style>
 </head>
@@ -687,11 +636,6 @@
     <h2 class="projection-heading">Última palabra explicada</h2>
     <div id="projection-word" class="projection-word" aria-live="polite"></div>
     <div class="projection-controls">
-      <div id="projection-pagination" class="projection-pagination" role="group" aria-label="Páginas de la explicación">
-        <button id="projection-prev" class="secondary" type="button" disabled>Anterior</button>
-        <span id="projection-page-count" aria-live="polite"></span>
-        <button id="projection-next" class="secondary" type="button" disabled>Siguiente</button>
-      </div>
       <button id="projection-random" type="button" class="primary" disabled>Revelar palabra al azar</button>
       <p id="projection-count" class="small" aria-live="polite"></p>
       <p id="projection-status" class="small" role="status" aria-live="polite"></p>
@@ -716,190 +660,6 @@
   // Las explicaciones pendientes solo se consultan tras validar al profesor.
   let pendingWords=[], revealInProgress=false, wordSyncRunning=null;
 
-
-  // El contenido largo se divide en pantallas; el texto nunca obliga a desplazar el iPad.
-  const projectionOriginalHtml=new WeakMap();
-  let projectionPages=[], projectionPageIndex=0, projectionCurrentFace=null;
-
-  function updateProjectionPagination() {
-    const hasPages=projectionPages.length>1;
-    $("projection-pagination").classList.toggle("is-active",hasPages);
-    $("projection-prev").disabled=!hasPages || projectionPageIndex===0;
-    $("projection-next").disabled=!hasPages || projectionPageIndex===projectionPages.length-1;
-    $("projection-page-count").textContent=hasPages?(projectionPageIndex+1)+" / "+projectionPages.length:"";
-  }
-
-  function displayProjectionPage(index) {
-    if(!projectionCurrentFace || !projectionPages.length) return;
-    projectionPageIndex=Math.max(0,Math.min(index,projectionPages.length-1));
-    projectionCurrentFace.innerHTML=projectionPages[projectionPageIndex];
-    updateProjectionPagination();
-  }
-
-  function fitProjectionCard() {
-    if(!$("presentation-dialog").open) return;
-    const projectionWord=$("projection-word");
-    const face=projectionWord.querySelector(".pending-face-back, .word-card");
-    if(!face) {
-      projectionPages=[];
-      projectionCurrentFace=null;
-      projectionWord.style.height="auto";
-      updateProjectionPagination();
-      return;
-    }
-
-    if(face!==projectionCurrentFace) projectionPageIndex=0;
-    projectionCurrentFace=face;
-    const original=projectionOriginalHtml.get(face)||face.innerHTML;
-    projectionOriginalHtml.set(face,original);
-    face.innerHTML=original;
-    face.style.removeProperty("overflow-y");
-    projectionPages=[];
-    updateProjectionPagination();
-    projectionWord.style.height="auto";
-
-    const stage=$("presentation-stage");
-    const heading=stage.querySelector(".projection-heading");
-    const controls=stage.querySelector(".projection-controls");
-    const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-24;
-    const maxHeight=Math.max(125,Math.min(390,Math.floor(window.innerHeight*.5),Math.floor(available)));
-
-    // Mide un duplicado plano y oculto, fuera de la tarjeta 3D. En Safari el
-    // scrollHeight de la cara girada no mide correctamente el texto y generaba
-    // una diapositiva por palabra.
-    const probe=face.cloneNode(false);
-    probe.setAttribute("aria-hidden","true");
-    Object.assign(probe.style,{
-      position:"absolute",top:"0",left:"0",right:"auto",bottom:"auto",
-      display:"block",height:"auto",minHeight:"0",maxHeight:"none",
-      width:"100%",overflow:"visible",transform:"none",
-      backfaceVisibility:"visible",webkitBackfaceVisibility:"visible",
-      visibility:"hidden",pointerEvents:"none",transition:"none"
-    });
-    projectionWord.append(probe);
-    const measure=(html,scale)=>{
-      probe.style.setProperty("--projection-scale",String(scale));
-      probe.innerHTML=html;
-      return Math.ceil(probe.getBoundingClientRect().height);
-    };
-
-    try {
-      const isFlippedFace=face.classList.contains("pending-face-back");
-      const scales=[1,.96,.92,.86];
-      for(const scale of scales) {
-        const naturalHeight=measure(original,scale);
-        if(naturalHeight<=maxHeight-8) {
-          face.style.setProperty("--projection-scale",String(scale));
-          projectionWord.style.height=Math.max(110,naturalHeight+8)+"px";
-          if(!isFlippedFace || face.scrollHeight<=face.clientHeight+2) return;
-          // El texto real puede ocupar más altura en la cara 3D que en la copia.
-          const overflow=face.scrollHeight-face.clientHeight;
-          projectionWord.style.height=Math.min(maxHeight,projectionWord.clientHeight+overflow+8)+"px";
-          if(face.scrollHeight<=face.clientHeight+2) return;
-        }
-      }
-
-      // Solo paginar cuando el contenido completo NO cabe. Cada página se
-      // comprueba con el duplicado plano, nunca con la cara girada.
-      const scale=.94;
-      face.style.setProperty("--projection-scale",String(scale));
-      const root=document.createElement("div");
-      root.innerHTML=original;
-      const nodes=[...root.children];
-      const title=nodes[0]?.tagName==="H3"?nodes.shift().outerHTML:"";
-      const groups=[];
-      while(nodes.length) {
-        const node=nodes.shift();
-        if(node.classList.contains("entry-label") && nodes[0]?.classList.contains("entry-text")) {
-          const paragraph=nodes.shift();
-          groups.push({html:node.outerHTML+paragraph.outerHTML,label:node.outerHTML,paragraph});
-        } else {
-          groups.push({html:node.outerHTML,label:"",paragraph:node.tagName==="P"?node:null});
-        }
-      }
-
-      const pages=[];
-      let body="";
-      // La cara trasera puede refluír hasta ~1,5 veces más alta al girar el
-      // iPad; reservamos espacio para esa diferencia sin reducir la fuente.
-      // Este margen solo afecta a las explicaciones que requieren varias páginas.
-      const pageBudget=isFlippedFace?Math.floor(maxHeight*.60):maxHeight-12;
-      const fits=next=>measure(title+next,scale)<=pageBudget;
-      const commit=()=>{
-        if(body) {
-          pages.push(title+body);
-          body="";
-        }
-      };
-      const append=html=>{
-        if(fits(body+html)) {
-          body+=html;
-          return true;
-        }
-        if(body) {
-          commit();
-          if(fits(html)) {
-            body=html;
-            return true;
-          }
-        }
-        return false;
-      };
-
-      for(const group of groups) {
-        if(append(group.html)) continue;
-        if(!group.paragraph) {
-          // Los elementos aislados (título o aviso) se mantienen íntegros.
-          body+=group.html;
-          commit();
-          continue;
-        }
-
-        // Un párrafo muy largo se distribuye por bloques de palabras. El
-        // criterio es la altura REAL del bloque completo, no la de una palabra.
-        const words=group.paragraph.textContent.trim().split(/\s+/).filter(Boolean);
-        const className=escapeHtml(group.paragraph.className);
-        let offset=0;
-        while(offset<words.length) {
-          const block=count=>group.label+'<p class="'+className+'">'+formatText(words.slice(offset,offset+count).join(" "))+'</p>';
-          let low=1,high=words.length-offset,best=0;
-          while(low<=high) {
-            const mid=Math.floor((low+high)/2);
-            if(fits(body+block(mid))) {
-              best=mid;
-              low=mid+1;
-            } else {
-              high=mid-1;
-            }
-          }
-          if(best===0 && body) {
-            commit();
-            continue;
-          }
-          if(best===0) {
-            // Si incluso una palabra no cabe, no crear cientos de páginas
-            // unipalabra: dejamos una página con desplazamiento interno
-            // como último recurso de accesibilidad.
-            face.style.overflowY="auto";
-            projectionPages=[original];
-            displayProjectionPage(0);
-            projectionWord.style.height=maxHeight+"px";
-            return;
-          }
-          body+=block(best);
-          offset+=best;
-          if(offset<words.length) commit();
-        }
-      }
-      commit();
-      projectionPages=pages.length?pages:[original];
-      projectionWord.style.height=maxHeight+"px";
-      displayProjectionPage(projectionPageIndex);
-    } finally {
-      probe.remove();
-      projectionWord.dataset.layoutReady="true";
-    }
-  }
 
   function explanationMarkup(word) {
     return '<h3>'+formatText(word.term)+'</h3>'+
@@ -991,8 +751,6 @@
     $("projection-word").innerHTML=data?.words
       ? '<article class="word-card">'+explanationMarkup(data.words)+'</article>'
       : '<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
-    delete $("projection-word").dataset.layoutReady;
-    requestAnimationFrame(fitProjectionCard);
   }
 
   async function openProjectionMode() {
@@ -1033,7 +791,6 @@
       back.className="pending-face pending-face-back";
       back.innerHTML=explanationMarkup(word);
       card.querySelector(".pending-card-inner").append(back);
-      fitProjectionCard();
       if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         await new Promise(resolve=>setTimeout(resolve,350));
       }
@@ -1196,12 +953,6 @@
       if(button?.dataset.revealId) void revealPendingWord(button.dataset.revealId,button);
     });
     $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
-    $("projection-prev").addEventListener("click",()=>displayProjectionPage(projectionPageIndex-1));
-    $("projection-next").addEventListener("click",()=>displayProjectionPage(projectionPageIndex+1));
-    // Safari estabiliza el tamaño de la ventana visual después del primer fotograma.
-    const refitAfterRotation=()=>requestAnimationFrame(()=>requestAnimationFrame(fitProjectionCard));
-    window.addEventListener("resize",refitAfterRotation);
-    window.visualViewport?.addEventListener("resize",refitAfterRotation);
     $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
