@@ -65,8 +65,12 @@ for(const {name,file} of sites){
 
 test("The two course identifiers and PWA caches remain independent",()=>{
   const bach=read("index.html"),eso=read("4eso/index.html");
-  const id=html=>html.match(/const SITE_COURSE_ID = "([^"]+)"/)?.[1] ||
-    html.match(/const SITE_COURSE_ID = ([A-Z_0-9]+);/)?.[1];
+  const id=html=>{
+    const direct=html.match(/const SITE_COURSE_ID = "([^"]+)"/)?.[1];
+    if(direct) return direct;
+    const alias=html.match(/const SITE_COURSE_ID = ([A-Z_0-9]+);/)?.[1];
+    return alias ? html.match(new RegExp("const "+alias+" = \"([^\"]+)\""))?.[1] : null;
+  };
   assert.ok(id(bach) && id(eso));
   assert.notEqual(id(bach),id(eso));
   assert.ok(read("sw.js").includes("palabra-shell-bach-v5"));
