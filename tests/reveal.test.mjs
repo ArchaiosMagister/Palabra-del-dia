@@ -91,3 +91,46 @@ test("Supabase migration hides pending explanations and prohibits pending votes"
   assert.match(sql,/ALTER PUBLICATION supabase_realtime ADD TABLE public\.word_revisions/);
   assert.ok(!/\bDELETE FROM public\.(votes|words|course_words|students)\b/i.test(sql));
 });
+
+
+for(const {name,file} of sites){
+  test(name+": publication update enforces session, course and prior state",async()=>{
+    const html=read(file);
+    const code=section(html,"async function updateWordPublication(","async function syncPublicationChange(");
+    const factory=new Function("client","isTeacher","currentUser","SITE_COURSE_ID",code+"return updateWordPublication;");
+    const calls=[];
+    const client={from(table){
+      calls.push(["from",table]);
+      return {
+        update(value){calls.push(["update",value]);return this;},
+        eq(key,value){calls.push(["eq",key,value]);return this;},
+        select(key){calls.push(["select",key]);return Promise.resolve({data:[{id:"word-A"}],error:null});},
+      };
+    }};
+    await assert.rejects(factory(client,false,null,"course-A")("word-A",true),/sesión de profesor/);
+    assert.equal(calls.length,0,"Students cannot submit publication changes");
+    await factory(client,true,{id:"teacher"},"course-A")("word-A",true);
+    assert.deepEqual(calls,[
+      ["from","course_words"],
+      ["update",{explained:true,explained_at:calls[1][1].explained_at}],
+      ["eq","id","word-A"],["eq","course_id","course-A"],["eq","explained",false],["select","id"]
+    ]);
+    assert.ok(typeof calls[1][1].explained_at==="string");
+    calls.length=0;
+    await factory(client,true,{id:"teacher"},"course-A")("word-A",false);
+    assert.equal(calls[1][1].explained,false);
+    assert.equal(calls[1][1].explained_at,null);
+    assert.ok(calls.some(c=>c[0]==="eq"&&c[1]==="explained"&&c[2]===true));
+  });
+  test(name+": front card never inserts explanation or executable HTML",()=>{
+    const html=read(file);
+    const code=section(html,"function pendingCardMarkup(","function renderPendingWords(");
+    const escapeHtml=value=>String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    const front=new Function("escapeHtml","formatText",code+"return pendingCardMarkup;")(escapeHtml,escapeHtml);
+    const card=front({id:"word-A",term:"<script>alert(1)</script>",origin:"private-origin",definition:"private-definition",story:"private-story"});
+    assert.ok(card.includes("&lt;script&gt;"));
+    for(const secret of ["private-origin","private-definition","private-story"])assert.ok(!card.includes(secret));
+    assert.ok(card.includes('data-reveal-id="word-A"'));
+    assert.ok(card.includes('data-present-id="word-A"'));
+  });
+}
