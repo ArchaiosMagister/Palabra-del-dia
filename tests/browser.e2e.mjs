@@ -151,7 +151,14 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
       await teacher.locator("#projection-random").click();
-      await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:15000});
+      await teacher.waitForTimeout(1200);
+      console.log("BROWSER-DEBUG",site.name,JSON.stringify({
+        projectionHtml:(await teacher.locator("#projection-word").innerHTML()).slice(0,2500),
+        projectionStatus:await teacher.locator("#projection-status").textContent(),
+        remainingCount:await teacher.locator("#projection-count").textContent(),
+        errors,
+      }));
+      await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:6000});
       const revealed=await teacher.locator("#projection-word .pending-card").getAttribute("data-pending-id");
       assert.ok(db.state.byCourse.get(site.course).find(x=>x.id===revealed).explained,"Published before revealing");
       assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"Disable during reveal");
