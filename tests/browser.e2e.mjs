@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "playwright-core";
+import { chromium, webkit } from "playwright-core";
 
 const root=path.resolve(import.meta.dirname,"..");
 const sites=[
@@ -122,7 +122,9 @@ test("Real-browser teacher projection and student realtime regression",async()=>
   const listen=await new Promise(resolve=>server.listen(0,"127.0.0.1",()=>resolve(server.address())));
   let browser;
   try {
-    browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||"/usr/bin/google-chrome",args:["--no-sandbox","--disable-dev-shm-usage"]});
+    const engine=process.env.BROWSER_ENGINE==="webkit"?webkit:chromium;
+    const options=engine===webkit?{headless:true}:{headless:true,executablePath:process.env.CHROME_BIN||"/usr/bin/google-chrome",args:["--no-sandbox","--disable-dev-shm-usage"]};
+    browser=await engine.launch(options);
     for(const site of sites){
       const teacherContext=await browser.newContext({viewport:{width:1024,height:768}});
       const studentContext=await browser.newContext({viewport:{width:390,height:844}});
