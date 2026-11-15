@@ -112,7 +112,7 @@ const server=http.createServer((req,res)=>{
   const url=new URL(req.url,"http://localhost");
   const site=sites.find(x=>x.route===url.pathname);
   if(!site){res.writeHead(404);res.end();return;}
-  const file=path.join(root,site.route==="4eso/"?"4eso/index.html":"index.html");
+  const file=path.join(root,site.route==="/4eso/"?"4eso/index.html":"index.html");
   res.writeHead(200,{"content-type":"text/html;charset=utf-8","cache-control":"no-store"});
   res.end(fs.readFileSync(file));
 });
