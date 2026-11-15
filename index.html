@@ -422,6 +422,40 @@
     .projection-word .pending-face-back h3{font-size:clamp(30px,5vw,52px)}
     .projection-word .pending-face-back{font-size:clamp(16px,2.2vw,24px)}
 
+    /* La pantalla de proyección ocupa exactamente el área visible del iPad. */
+    .presentation-dialog{display:flex;flex-direction:column;gap:0;width:100%;height:100dvh;max-height:100dvh;overflow:hidden;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+    .presentation-dialog:not([open]){display:none}
+    .presentation-top{width:100%;min-height:0;flex:0 0 auto;margin:0 auto clamp(3px,1dvh,12px)}
+    .presentation-top strong{font-size:clamp(17px,2vw,25px)}
+    .presentation-top button{min-height:44px;padding:8px 12px}
+    .presentation-stage{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;width:100%;max-width:1050px;margin:0 auto}
+    .projection-heading{flex:0 0 auto;font-size:clamp(13px,1.6vw,19px);margin:0 0 clamp(4px,1dvh,10px)}
+    .projection-word{flex:1 1 auto;min-height:0;width:100%;max-width:none;overflow:hidden;margin:0}
+    .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
+    .projection-word .word-card,.projection-word .pending-face{overflow:hidden;padding:clamp(12px,2.2vmin,27px)}
+    .projection-word .word-card,.projection-word .pending-face-back{font-size:calc(clamp(17px,2.3vw,24px) * var(--projection-scale,1));line-height:1.24}
+    .projection-word .word-card h3,.projection-word .pending-face-back h3{font:600 calc(clamp(32px,5.5vw,68px) * var(--projection-scale,1))/1.09 "Crimson Pro",Georgia,serif;margin:0 0 .22em}
+    .projection-word .entry-label,.projection-word .pending-face-back .entry-label{font-size:.78em;margin:.6em 0 .1em}
+    .projection-word .entry-text,.projection-word .pending-face-back .entry-text{font-size:1em;line-height:1.25;margin:.12em 0 .43em;overflow-wrap:anywhere}
+    .projection-word .small,.projection-word .pending-face-back .small{font-size:.7em;line-height:1.25;margin:.5em 0}
+    .projection-word .pending-face-front h3{font-size:clamp(30px,6vw,70px)}
+    .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
+    .projection-controls button{min-height:44px;padding:8px 16px;font-size:clamp(15px,1.9vw,20px)}
+    .projection-controls .small{font-size:clamp(11px,1.3vw,14px);line-height:1.2;max-width:100%}
+    .projection-pagination{display:flex;gap:10px;align-items:center;justify-content:center;min-height:44px}
+    .projection-pagination:not(.is-active){visibility:hidden}
+    .projection-pagination button{min-height:40px;padding:6px 14px;font-size:14px}
+    .projection-pagination span{min-width:54px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
+    @media(max-height:620px){
+      .presentation-dialog{padding-top:6px;padding-bottom:6px}
+      .presentation-top{margin-bottom:2px}
+      .projection-heading{margin-bottom:3px}
+      .projection-controls{margin-top:3px}
+      .projection-pagination{min-height:40px}
+      .projection-controls button{min-height:42px}
+    }
+
+
 </style>
 </head>
 <body>
@@ -635,6 +669,11 @@
     <h2 class="projection-heading">Última palabra explicada</h2>
     <div id="projection-word" class="projection-word" aria-live="polite"></div>
     <div class="projection-controls">
+      <div id="projection-pagination" class="projection-pagination" role="group" aria-label="Páginas de la explicación">
+        <button id="projection-prev" class="secondary" type="button" disabled>Anterior</button>
+        <span id="projection-page-count" aria-live="polite"></span>
+        <button id="projection-next" class="secondary" type="button" disabled>Siguiente</button>
+      </div>
       <button id="projection-random" type="button" class="primary" disabled>Revelar palabra al azar</button>
       <p id="projection-count" class="small" aria-live="polite"></p>
       <p id="projection-status" class="small" role="status" aria-live="polite"></p>
@@ -658,6 +697,107 @@
 
   // Las explicaciones pendientes solo se consultan tras validar al profesor.
   let pendingWords=[], revealInProgress=false, wordSyncRunning=null;
+
+
+  // El contenido largo se divide en pantallas; el texto nunca obliga a desplazar el iPad.
+  const projectionOriginalHtml=new WeakMap();
+  let projectionPages=[], projectionPageIndex=0, projectionCurrentFace=null;
+
+  function updateProjectionPagination() {
+    const hasPages=projectionPages.length>1;
+    $("projection-pagination").classList.toggle("is-active",hasPages);
+    $("projection-prev").disabled=!hasPages || projectionPageIndex===0;
+    $("projection-next").disabled=!hasPages || projectionPageIndex===projectionPages.length-1;
+    $("projection-page-count").textContent=hasPages?(projectionPageIndex+1)+" / "+projectionPages.length:"";
+  }
+
+  function displayProjectionPage(index) {
+    if(!projectionCurrentFace || !projectionPages.length) return;
+    projectionPageIndex=Math.max(0,Math.min(index,projectionPages.length-1));
+    projectionCurrentFace.innerHTML=projectionPages[projectionPageIndex];
+    updateProjectionPagination();
+  }
+
+  function fitProjectionCard() {
+    if(!$("presentation-dialog").open) return;
+    const face=$("projection-word").querySelector(".pending-face-back, .word-card");
+    if(!face) {
+      projectionPages=[];
+      projectionCurrentFace=null;
+      updateProjectionPagination();
+      return;
+    }
+    if(face!==projectionCurrentFace) projectionPageIndex=0;
+    projectionCurrentFace=face;
+    const original=projectionOriginalHtml.get(face)||face.innerHTML;
+    projectionOriginalHtml.set(face,original);
+    face.innerHTML=original;
+    projectionPages=[];
+    face.style.setProperty("--projection-scale","1");
+    updateProjectionPagination();
+    const fits=()=>face.scrollHeight<=face.clientHeight+2;
+    for(const scale of [1,.93,.86,.79,.72]) {
+      face.style.setProperty("--projection-scale",String(scale));
+      if(fits()) return;
+    }
+
+    // Reservamos el espacio de la paginación y conservamos letra legible.
+    face.style.setProperty("--projection-scale",".84");
+    const dom=document.createElement("div");
+    dom.innerHTML=original;
+    const nodes=[...dom.children], title=nodes[0]?.tagName==="H3"?nodes.shift().outerHTML:"";
+    const groups=[];
+    while(nodes.length) {
+      const item=nodes.shift();
+      if(item.classList.contains("entry-label") && nodes[0]?.classList.contains("entry-text")) {
+        const paragraph=nodes.shift();
+        groups.push({html:item.outerHTML+paragraph.outerHTML,label:item.outerHTML,paragraph});
+      } else {
+        groups.push({html:item.outerHTML,label:"",paragraph:item.tagName==="P"?item:null});
+      }
+    }
+    const pages=[];
+    const render=groupsHtml=>{face.innerHTML=title+groupsHtml;return fits();};
+    let current="";
+    for(const group of groups) {
+      if(render(current+group.html)) {
+        current+=group.html;
+        continue;
+      }
+      if(current) {
+        pages.push(title+current);
+        current="";
+      }
+      if(render(group.html)) {
+        current=group.html;
+        continue;
+      }
+      // Un apartado excepcionalmente extenso se parte por palabras, sin perder texto.
+      if(!group.paragraph) {
+        current=group.html;
+        continue;
+      }
+      const words=group.paragraph.textContent.trim().split(/\s+/).filter(Boolean);
+      const pClass=group.paragraph.className;
+      let start=0;
+      while(start<words.length) {
+        let low=1,high=words.length-start,best=0;
+        while(low<=high) {
+          const mid=Math.floor((low+high)/2);
+          const fragment=group.label+'<p class="'+escapeHtml(pClass)+'">'+escapeHtml(words.slice(start,start+mid).join(" "))+'</p>';
+          if(render(fragment)) {best=mid;low=mid+1;} else high=mid-1;
+        }
+        // La altura del contenedor siempre prevalece sobre cualquier límite de página.
+        if(!best) best=1;
+        const part=group.label+'<p class="'+escapeHtml(pClass)+'">'+escapeHtml(words.slice(start,start+best).join(" "))+'</p>';
+        pages.push(title+part);
+        start+=best;
+      }
+    }
+    if(current) pages.push(title+current);
+    projectionPages=pages.length?pages:[original];
+    displayProjectionPage(projectionPageIndex);
+  }
 
   function explanationMarkup(word) {
     return '<h3>'+formatText(word.term)+'</h3>'+
@@ -749,6 +889,7 @@
     $("projection-word").innerHTML=data?.words
       ? '<article class="word-card">'+explanationMarkup(data.words)+'</article>'
       : '<p class="empty">Todavía no hay palabras explicadas en este curso.</p>';
+    requestAnimationFrame(fitProjectionCard);
   }
 
   async function openProjectionMode() {
@@ -789,6 +930,7 @@
       back.className="pending-face pending-face-back";
       back.innerHTML=explanationMarkup(word);
       card.querySelector(".pending-card-inner").append(back);
+      fitProjectionCard();
       if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         await new Promise(resolve=>setTimeout(resolve,350));
       }
@@ -951,6 +1093,10 @@
       if(button?.dataset.revealId) void revealPendingWord(button.dataset.revealId,button);
     });
     $("projection-random").addEventListener("click",()=>void revealRandomPendingWord());
+    $("projection-prev").addEventListener("click",()=>displayProjectionPage(projectionPageIndex-1));
+    $("projection-next").addEventListener("click",()=>displayProjectionPage(projectionPageIndex+1));
+    window.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
+    window.visualViewport?.addEventListener("resize",()=>requestAnimationFrame(fitProjectionCard));
     $("presentation-close").addEventListener("click",()=>$("presentation-dialog").close());
     $("refresh-visit-count").addEventListener("click", () => void loadTeacherVisitCount());
     $("start-review").addEventListener("click", () => $("review-panel").classList.contains("hidden") ? startReview() : stopReview());
