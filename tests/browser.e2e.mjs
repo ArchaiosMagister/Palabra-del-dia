@@ -177,12 +177,54 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       }
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
+      // Only the letter size changes: the original card, dimensions and content stay intact.
+      const zoomRead=()=>teacher.evaluate(()=>{
+        const word=document.querySelector("#projection-word");
+        return {
+          titleSize:parseFloat(getComputedStyle(word.querySelector(".word-card h3")).fontSize),
+          textSize:parseFloat(getComputedStyle(word.querySelector(".word-card .entry-text")).fontSize),
+          labelSize:parseFloat(getComputedStyle(word.querySelector(".word-card .entry-label")).fontSize),
+          cardWidth:word.querySelector(".word-card").getBoundingClientRect().width,
+          cardMinHeight:getComputedStyle(word.querySelector(".word-card")).minHeight,
+          zoomVariable:word.style.getPropertyValue("--projection-font-zoom")
+        };
+      });
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"100 %");
+      const initialZoom=await zoomRead();
+      await teacher.locator("#projection-zoom-in").click();
+      const largerZoom=await zoomRead();
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"110 %");
+      for(const key of ["titleSize","textSize","labelSize"])
+        assert.ok(largerZoom[key]>initialZoom[key]*1.09,
+          site.name+" "+key+" should increase by about 10%: "+JSON.stringify({initialZoom,largerZoom}));
+      assert.ok(Math.abs(largerZoom.cardWidth-initialZoom.cardWidth)<2,"Zoom must not change card width");
+      assert.equal(largerZoom.cardMinHeight,initialZoom.cardMinHeight,"Original card layout must remain unchanged");
+      await teacher.locator("#projection-zoom-out").click();
+      const restoredZoom=await zoomRead();
+      for(const key of ["titleSize","textSize","labelSize"])
+        assert.ok(Math.abs(restoredZoom[key]-initialZoom[key])<1,"Minus should restore original "+key);
+      // Bounds 80%–150%, with disabled buttons at either end.
+      for(let i=0;i<2;i++) await teacher.locator("#projection-zoom-out").click();
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"80 %");
+      assert.equal(await teacher.locator("#projection-zoom-out").isDisabled(),true);
+      for(let i=0;i<7;i++) await teacher.locator("#projection-zoom-in").click();
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"150 %");
+      assert.equal(await teacher.locator("#projection-zoom-in").isDisabled(),true);
+      for(let i=0;i<4;i++) await teacher.locator("#projection-zoom-out").click();
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"110 %");
+      assert.equal(await teacher.locator("#projection-pagination").count(),0);
       await teacher.locator("#projection-random").click();
       assert.equal(await teacher.locator("#projection-random").isDisabled(),true,"The reveal button is disabled immediately after activation");
       await teacher.locator("#projection-word .pending-card.is-revealed").waitFor({timeout:15000});
       const revealed=await teacher.locator("#projection-word .pending-card").getAttribute("data-pending-id");
       const revealedCard=teacher.locator("#projection-word .pending-face-back");
       assert.ok((await revealedCard.innerText()).includes("Una explicación extensa"),"Long explanation stays intact after revealing");
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"110 %","Zoom persists after revealing");
+      const backTextSize=await revealedCard.locator(".entry-text").first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+      await teacher.locator("#projection-zoom-out").click();
+      const reducedBackTextSize=await revealedCard.locator(".entry-text").first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+      assert.ok(reducedBackTextSize<backTextSize/1.09,"Minus must also reduce revealed word lettering");
+      assert.equal(await teacher.locator("#projection-zoom-value").textContent(),"100 %");
       const backLayout=await revealedCard.evaluate(el=>({
         overflow:getComputedStyle(el).overflowY,
         pageBreak:!!el.closest("#projection-pagination"),
