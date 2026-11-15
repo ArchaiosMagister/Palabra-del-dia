@@ -378,7 +378,34 @@
     .site-icon-help summary{cursor:pointer;list-style-position:inside}
     .site-icon-help p{max-width:440px;margin:6px 0 0 auto;line-height:1.45;text-align:left}
     @media(max-width:640px){.theme-control{flex-wrap:wrap}.site-update-status,.site-icon-help p{max-width:100%}}
-  </style>
+  
+    .pending-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+    .pending-card{perspective:1300px;min-height:305px;min-width:0}
+    .pending-card-inner{position:relative;min-height:305px;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.2,.7,.25,1)}
+    .pending-card.is-revealed .pending-card-inner{transform:rotateY(180deg)}
+    .pending-face{position:absolute;inset:0;box-sizing:border-box;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow-y:auto;background:var(--paper2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:clamp(18px,3vw,30px);box-shadow:var(--shadow)}
+    .pending-face-back{transform:rotateY(180deg);text-align:left}
+    .pending-face-front{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+    .pending-face h3{font:600 clamp(29px,5vw,45px)/1.12 "Crimson Pro",Georgia,serif;color:var(--red);overflow-wrap:anywhere;margin:12px 0}
+    .pending-label{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .pending-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px}
+    .pending-buttons button{min-height:44px}
+    .pending-face .entry-label{margin-top:15px}
+    .pending-face .entry-text{overflow-wrap:anywhere}
+    .pending-card.is-transferring{animation:pending-depart .45s ease-in forwards}
+    @keyframes pending-depart{to{opacity:0;transform:translateY(-25px) scale(.95)}}
+    .presentation-dialog{position:fixed;inset:0;margin:0;box-sizing:border-box;width:100vw;height:100dvh;max-width:none;max-height:none;padding:clamp(12px,3vw,36px);border:0;background:var(--paper);color:var(--ink);overflow-y:auto}
+    .presentation-dialog::backdrop{background:rgba(0,0,0,.9)}
+    .presentation-top{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1050px;margin:0 auto 20px}
+    .presentation-top strong{font:600 clamp(20px,3vw,30px) "Crimson Pro",Georgia,serif;color:var(--red)}
+    .presentation-top button{min-height:44px}
+    .presentation-stage{max-width:960px;margin:auto}
+    .presentation-stage .pending-card,.presentation-stage .pending-card-inner{min-height:min(70dvh,750px)}
+    .presentation-stage .pending-face h3{font-size:clamp(38px,8vw,82px)}
+    .presentation-stage .pending-face-back h3{font-size:clamp(30px,5vw,54px)}
+    .presentation-stage .pending-face-back{font-size:clamp(16px,2vw,23px)}
+    @media(prefers-reduced-motion:reduce){.pending-card-inner{transition:none!important}.pending-card.is-transferring{animation:none!important}}
+</style>
 </head>
 <body>
 <header>
@@ -406,6 +433,7 @@
     </div>
     <nav aria-label="Secciones">
       <button id="tab-dictionary" class="active" type="button">Diccionario</button>
+      <button id="tab-pending" class="hidden" type="button">Palabras no explicadas</button>
       <button id="tab-ranking" type="button">Clasificación general</button>
       <button id="tab-personal" class="hidden" type="button">Clasificación personal</button>
     </nav>
@@ -477,6 +505,13 @@
     </section>
     <section id="review-panel" class="review-panel hidden" aria-live="polite"></section>
     <dialog id="entry-dialog" class="entry-dialog" aria-label="Ficha completa"><div id="entry-dialog-content" class="dialog-inner"></div></dialog>
+  </section>
+
+  <section id="pending-view" class="hidden" aria-labelledby="pending-heading">
+    <h2 id="pending-heading" class="section-title">Palabras no explicadas</h2>
+    <p class="section-note">Solo visible para el profesor. Pulsa «Revelar» para mostrar la explicación y desbloquear la votación.</p>
+    <p id="pending-count" class="small" role="status" aria-live="polite"></p>
+    <div id="pending-list" class="pending-list"><div class="empty">Cargando palabras pendientes…</div></div>
   </section>
   <section id="ranking" class="hidden">
     <div class="toolbar">
@@ -575,6 +610,11 @@
   body.qr-printing #student-qr-image img,body.qr-printing #student-qr-image canvas { print-color-adjust:exact; }
 }
 </style>
+
+<dialog id="presentation-dialog" class="presentation-dialog" aria-label="Presentación de una palabra">
+  <div class="presentation-top"><strong>Palabra del día</strong><button type="button" id="presentation-close" class="secondary">Cerrar presentación ✕</button></div>
+  <div id="presentation-stage" class="presentation-stage"></div>
+</dialog>
 <footer><em>Non scholæ, sed vitæ discimus.</em></footer>
 <script>
 (() => {
