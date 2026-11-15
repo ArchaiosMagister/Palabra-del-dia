@@ -446,6 +446,15 @@
     .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
     .projection-pagination:not(.is-active){display:none}
     .projection-word .word-card{position:relative}
+
+    /* Maquetación compacta como la versión original: sin tarjeta estirada ni centrado vertical.
+       Mantener el margen inferior libre es preferible a fabricar un rectángulo vacío. */
+    .presentation-top,.presentation-stage{max-width:780px}
+    .presentation-stage{justify-content:flex-start}
+    .projection-word{flex:0 0 auto;max-width:780px}
+    .projection-word .word-card{height:auto;min-height:0;max-height:none;padding:clamp(15px,2.2vmin,24px)}
+    .projection-controls{margin-top:clamp(5px,1dvh,11px)}
+    .projection-heading{margin-bottom:clamp(5px,1dvh,10px)}
     .projection-controls{margin-top:clamp(8px,1.5dvh,16px)}
 
     .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
@@ -760,8 +769,8 @@
     const heading=stage.querySelector(".projection-heading");
     const controls=stage.querySelector(".projection-controls");
     const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-32;
-    const maxHeight=Math.max(120,Math.min(window.innerHeight*.50,410,available));
-    const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
+    const maxHeight=Math.max(120,Math.min(window.innerHeight*.44,360,available));
+    const minimum=face.classList.contains("pending-face-back")?Math.min(140,window.innerHeight*.2):0;
     // Una ficha ya explicada que cabe por sí sola mantiene altura natural:
     // así Safari la reajusta al girar el iPad sin depender de medidas antiguas.
     if(face.classList.contains("word-card") && naturalHeight+24<maxHeight) {
