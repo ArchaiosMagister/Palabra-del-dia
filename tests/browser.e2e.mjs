@@ -165,6 +165,8 @@ test("Real-browser teacher projection and student realtime regression",async()=>
             page:document.querySelector("#projection-page-count")?.textContent,
             pageButtonsVisible:getComputedStyle(document.querySelector("#projection-pagination")).display,
             faceTextLength:face?.textContent.length,
+            faceBottomBlank:face && face.children.length ? Math.round(face.getBoundingClientRect().bottom-face.lastElementChild.getBoundingClientRect().bottom):0,
+            cardWidth:word?.clientWidth,
             wordHeight:word?.clientHeight,
             controlsBottom:controls?.getBoundingClientRect().bottom,
             windowHeight:window.innerHeight};
@@ -172,6 +174,11 @@ test("Real-browser teacher projection and student realtime regression",async()=>
         assert.ok(sizes.dialogOverflow<=3,label+": dialog must not scroll: "+JSON.stringify(sizes));
         assert.ok(sizes.faceOverflow<=3,label+": content must fit its slide: "+JSON.stringify(sizes));
         assert.ok(sizes.wordHeight>100,label+": card has usable height: "+JSON.stringify(sizes));
+        assert.ok(sizes.cardWidth<=790,label+": card should not stretch across the whole iPad: "+JSON.stringify(sizes));
+        if(label.includes("latest")) {
+          assert.ok(sizes.faceBottomBlank<=66,label+": short card must not contain large empty area: "+JSON.stringify(sizes));
+          assert.ok(sizes.wordHeight<=290,label+": short card should fit its natural content: "+JSON.stringify(sizes));
+        }
         assert.ok(sizes.wordHeight<=Math.min(440,sizes.windowHeight*.54)+4,
           label+": projected card must remain compact: "+JSON.stringify(sizes));
         assert.ok(sizes.controlsBottom<=sizes.windowHeight+3,label+": controls not clipped: "+JSON.stringify(sizes));
@@ -194,7 +201,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       await teacher.waitForFunction(()=>document.querySelector("#projection-pagination").classList.contains("is-active"),{timeout:10000});
       await assertProjectionFits(site.name+" revealed landscape");
       const firstPage=await teacher.locator("#projection-page-count").textContent();
-      assert.match(firstPage,/^1 \/ [2-9][0-9]*$/,"Long explanation must be paginated without scroll");
+      assert.match(firstPage,/^1 \/ (?:[2-9]|[1-9][0-9]+)$/,"Long explanation must be paginated without scroll");
       await teacher.locator("#projection-next").click();
       assert.match(await teacher.locator("#projection-page-count").textContent(),/^2 \/ /);
       await assertProjectionFits(site.name+" second page");
