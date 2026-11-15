@@ -784,13 +784,18 @@
     };
 
     try {
+      const isFlippedFace=face.classList.contains("pending-face-back");
       const scales=[1,.96,.92,.86];
       for(const scale of scales) {
         const naturalHeight=measure(original,scale);
         if(naturalHeight<=maxHeight-8) {
           face.style.setProperty("--projection-scale",String(scale));
           projectionWord.style.height=Math.max(110,naturalHeight+8)+"px";
-          return;
+          if(!isFlippedFace || face.scrollHeight<=face.clientHeight+2) return;
+          // El texto real puede ocupar más altura en la cara 3D que en la copia.
+          const overflow=face.scrollHeight-face.clientHeight;
+          projectionWord.style.height=Math.min(maxHeight,projectionWord.clientHeight+overflow+8)+"px";
+          if(face.scrollHeight<=face.clientHeight+2) return;
         }
       }
 
@@ -815,7 +820,11 @@
 
       const pages=[];
       let body="";
-      const fits=next=>measure(title+next,scale)<=maxHeight-12;
+      // La cara trasera puede refluír hasta ~1,5 veces más alta al girar el
+      // iPad; reservamos espacio para esa diferencia sin reducir la fuente.
+      // Este margen solo afecta a las explicaciones que requieren varias páginas.
+      const pageBudget=isFlippedFace?Math.floor(maxHeight*.60):maxHeight-12;
+      const fits=next=>measure(title+next,scale)<=pageBudget;
       const commit=()=>{
         if(body) {
           pages.push(title+body);
