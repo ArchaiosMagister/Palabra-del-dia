@@ -796,8 +796,12 @@
       : projectionHistoryIndex<projectionHistory.length-1 || projectionHistoryHasMore;
     $("projection-history-prev").disabled=!available || !older;
     $("projection-history-next").disabled=!available || projectionHistoryIndex===0;
+    // El historial se consulta de la más reciente a la más antigua, pero el
+    // número de diapositiva avanza cronológicamente: la primera explicada es 1.
     $("projection-history-count").textContent=projectionHistory.length
-      ? (projectionHistoryIndex+1)+" / "+(projectionHistoryTotal??"…")
+      ? (projectionHistoryTotal===null
+        ? "… / …"
+        : (projectionHistoryTotal-projectionHistoryIndex)+" / "+projectionHistoryTotal)
       : "Sin palabras explicadas";
   }
 
