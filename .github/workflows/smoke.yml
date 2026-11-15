@@ -19,3 +19,16 @@ jobs:
           node-version: '22'
       - name: Verificar las dos webs y PWA
         run: node --test tests/*.test.mjs
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar controlador Chromium para pruebas de integración
+        run: npm install --no-save --ignore-scripts playwright-core@1.57.0
+      - name: Comprobar proyección, sorteo y votaciones en dos navegadores
+        run: CHROME_BIN="$(command -v google-chrome)" node --test tests/browser.e2e.mjs
