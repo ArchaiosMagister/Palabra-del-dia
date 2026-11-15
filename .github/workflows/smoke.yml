@@ -34,7 +34,7 @@ jobs:
         run: CHROME_BIN="$(command -v google-chrome)" node --test tests/browser.e2e.mjs
 
   safari-engine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
