@@ -186,6 +186,45 @@ for (const {name,file} of sites) {
     assert.ok(html.includes('id="projection-random" type="button" class="primary" disabled'));
   });
 
+  test(name+": projection navigates across pages of 30 explained entries",async()=>{
+    const html=read(file);
+    const code=section(html,"const PROJECTION_HISTORY_BATCH_SIZE=30;","async function openProjectionMode()");
+    const rows=Array.from({length:31},(_,i)=>({id:"explained-"+i,explained:true,words:{term:"Palabra "+i}}));
+    const ranges=[],nodes={
+      "presentation-dialog":{open:true,scrollTop:0},
+      "projection-word":{innerHTML:""},
+      "projection-status":{textContent:""},
+      "projection-heading":{textContent:""},
+      "projection-history-prev":{disabled:true},
+      "projection-history-next":{disabled:true},
+      "projection-history-count":{textContent:""}
+    };
+    const client={from(table){
+      assert.equal(table,"course_words");
+      let start=0,end=29;
+      return {
+        select(_fields,options){assert.equal(options?.count,"exact");return this;},
+        eq(key,value){if(key==="course_id")assert.equal(value,"COURSE-X");if(key==="explained")assert.equal(value,true);return this;},
+        order(){return this;},
+        range(first,last){start=first;end=last;ranges.push([first,last]);return this;},
+        then(resolve,reject){return Promise.resolve({data:rows.slice(start,end+1),count:rows.length,error:null}).then(resolve,reject);}
+      };
+    }};
+    const factory=new Function("$","isTeacher","revealInProgress","client","SITE_COURSE_ID","explanationMarkup",
+      code+"return {load:loadLastExplainedForProjection,move:moveProjectionHistory};");
+    const nav=factory(key=>nodes[key],true,false,client,"COURSE-X",word=>"<h3>"+word.term+"</h3>");
+    await nav.load();
+    assert.equal(nodes["projection-history-count"].textContent,"1 / 31");
+    for(let i=0;i<30;i++)await nav.move(1);
+    assert.deepEqual(ranges,[[0,29],[30,59]],"Fetch the next batch only after reaching the cache boundary");
+    assert.equal(nodes["projection-history-count"].textContent,"31 / 31");
+    assert.equal(nodes["projection-history-prev"].disabled,true,"Oldest word must disable Anterior");
+    assert.ok(nodes["projection-word"].innerHTML.includes("Palabra 30"));
+    await nav.move(-1);
+    assert.equal(nodes["projection-history-count"].textContent,"30 / 31");
+    assert.ok(nodes["projection-word"].innerHTML.includes("Palabra 29"));
+  });
+
   test(name+": secure uniform random index and rejection sampling",()=>{
     const html=read(file);
     const code=section(html,"function randomPendingIndex(","async function fetchPendingCandidates()");
