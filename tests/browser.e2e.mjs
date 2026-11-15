@@ -335,7 +335,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
           p_term:"Prohibida",p_origin:"",p_definition:"",p_story:""
         });
       },site.course);
-      assert.match(forbidden.error?.message||"","Solo el profesor");
+      assert.match(forbidden.error?.message||"",/Solo el profesor/);
       assert.ok(!db.state.byCourse.get(site.course).some(row=>row.words.term==="Prohibida"));
 
       await teacher.locator("#teacher-word-manager > summary").click();
