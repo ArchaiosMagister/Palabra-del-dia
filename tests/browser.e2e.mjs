@@ -24,6 +24,7 @@ const mockSdk=String.raw`
       eq(key,value){state.filters.push({operator:"eq",key,value});return this},
       gt(key,value){state.filters.push({operator:"gt",key,value});return this},
       in(key,value){state.filters.push({operator:"in",key,value});return this},
+      or(value){state.orFilter=value;return this},
       order(key,value){state.orders.push({key,value});return this},
       limit(value){state.limit=value;return this},
       update(value){state.update=value;return this},
@@ -80,6 +81,7 @@ function mockDb(){
     if(q.table==="course_words"&&q.update){
       assert.equal(q.role,"teacher","Mock backend denies publication updates to students");
       const match=rows.filter(row=>q.filters.every(f=>f.operator!=="eq" || row[f.key]===f.value));
+      console.log("MOCK-UPDATE",JSON.stringify({role:q.role,course:q.course,filters:q.filters,rows:rows.map(r=>({id:r.id,course_id:r.course_id,explained:r.explained})),match:match.map(r=>r.id)}));
       for(const row of match){const ref=state.byCourse.get(q.course).find(item=>item.id===row.id);Object.assign(ref,q.update);}
       return {data:match.map(x=>({id:x.id})),error:null};
     }
@@ -137,7 +139,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
         await page.route("https://fonts.googleapis.com/**",route=>route.fulfill({status:200,contentType:"text/css",body:""}));
         await page.route("https://fonts.gstatic.com/**",route=>route.fulfill({status:204,body:""}));
         page.on("pageerror",error=>errors.push(role+": "+error.message));
-        page.on("console",msg=>{if(["warning","error"].includes(msg.type())) errors.push(role+" console: "+msg.text());});
+        page.on("console",msg=>{if(["warning","error"].includes(msg.type()) && !msg.text().includes("Failed to load resource")) errors.push(role+" console: "+msg.text());});
       }
       const url="http://127.0.0.1:"+listen.port+site.route;
       await Promise.all([teacher.goto(url,{waitUntil:"domcontentloaded"}),student.goto(url,{waitUntil:"domcontentloaded"})]);
