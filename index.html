@@ -769,7 +769,7 @@
     // El fondo de cada elemento tiene que quedar dentro del área visible real.
     const requiredHeight=()=>{
       const bottom=[...face.children].reduce((max,node)=>Math.max(max,node.offsetTop+node.offsetHeight),0);
-      return bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0);
+      return Math.max(face.scrollHeight,bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0));
     };
     const overflow=Math.max(0,requiredHeight()-face.clientHeight);
     if(overflow>2) {
