@@ -196,17 +196,17 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal(await teacher.locator("#projection-random").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-count").textContent(),"2 palabras pendientes.");
       // Chronological history, boundaries and return to the latest entry.
-      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 2");
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 2");
       assert.equal(await teacher.locator("#projection-history-prev").isDisabled(),false);
       assert.equal(await teacher.locator("#projection-history-next").isDisabled(),true);
       await teacher.locator("#projection-history-prev").click();
       assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes("Antigua"));
-      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 2");
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 2");
       assert.equal(await teacher.locator("#projection-history-prev").isDisabled(),true);
       assert.equal(await teacher.locator("#projection-history-next").isDisabled(),false);
       await teacher.locator("#projection-history-next").click();
       assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes(expectedLatest));
-      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 2");
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 2");
       assert.equal(await teacher.locator("#projection-history-next").isDisabled(),true);
       assert.equal(await student.locator("#projection-history-prev:visible").count(),0);
       // Only the letter size changes: the original card, dimensions and content stay intact.
@@ -275,7 +275,7 @@ test("Real-browser teacher projection and student realtime regression",async()=>
       assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"2 / 3");
       await teacher.locator("#projection-history-next").click();
       assert.ok((await teacher.locator("#projection-word .word-card").innerText()).includes(db.state.byCourse.get(site.course).find(x=>x.id===revealed).words.term));
-      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"1 / 3");
+      assert.equal((await teacher.locator("#projection-history-count").textContent()).trim(),"3 / 3");
       await student.evaluate(()=>window.__emitWordUpdate());
       await student.waitForFunction(()=>document.querySelectorAll("#cards .entry-preview").length===3,{timeout:10000});
       await teacher.waitForFunction(()=>!document.querySelector("#projection-random").disabled,{timeout:10000});
