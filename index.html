@@ -762,6 +762,13 @@
     const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-32;
     const maxHeight=Math.max(120,Math.min(window.innerHeight*.50,410,available));
     const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
+    // Una ficha ya explicada que cabe por sí sola mantiene altura natural:
+    // así Safari la reajusta al girar el iPad sin depender de medidas antiguas.
+    if(face.classList.contains("word-card") && naturalHeight+24<maxHeight) {
+      projectionWord.style.height="auto";
+      face.style.removeProperty("--projection-scale");
+      return;
+    }
     projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
     // WebKit puede medir una copia más baja que la tarjeta real tras girar el iPad.
     // Ajustamos con la altura desbordada real antes de reducir la tipografía.
