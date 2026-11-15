@@ -760,23 +760,25 @@
     const heading=stage.querySelector(".projection-heading");
     const controls=stage.querySelector(".projection-controls");
     const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-32;
-    const maxHeight=Math.max(120,Math.min(window.innerHeight*.53,435,available));
+    const maxHeight=Math.max(120,Math.min(window.innerHeight*.50,410,available));
     const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
     projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
     // WebKit puede medir una copia más baja que la tarjeta real tras girar el iPad.
     // Ajustamos con la altura desbordada real antes de reducir la tipografía.
     // En WebKit una cara girada en 3D puede devolver scrollHeight obsoleto.
     // El fondo de cada elemento tiene que quedar dentro del área visible real.
-    const requiredHeight=()=>{
+    const textExtent=()=>{
       const bottom=[...face.children].reduce((max,node)=>Math.max(max,node.offsetTop+node.offsetHeight),0);
-      return Math.max(face.scrollHeight,bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0));
+      return bottom+(parseFloat(getComputedStyle(face).paddingBottom)||0);
     };
-    const overflow=Math.max(0,requiredHeight()-face.clientHeight);
+    // En una cara 3D, scrollHeight puede ser como mínimo la altura de la tarjeta.
+    // Solo contamos su exceso, no toda esa altura como si fuera texto.
+    const overflow=Math.max(0,face.scrollHeight-face.clientHeight,textExtent()+20-face.clientHeight);
     if(overflow>2) {
       projectionWord.style.height=Math.ceil(Math.min(maxHeight,projectionWord.clientHeight+overflow+3))+"px";
     }
-    // Un margen de medición evita recortes de pocos píxeles al reflujo de Safari.
-    const fits=()=>requiredHeight()+20<=face.clientHeight;
+    // Combinamos los dos cálculos: la posición de los elementos y el desbordamiento.
+    const fits=()=>textExtent()+20<=face.clientHeight && face.scrollHeight<=face.clientHeight+2;
     for(const scale of [1,.93,.86,.79,.72]) {
       face.style.setProperty("--projection-scale",String(scale));
       if(fits()) return;
