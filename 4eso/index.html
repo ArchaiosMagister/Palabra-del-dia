@@ -439,6 +439,14 @@
     .projection-word .entry-text,.projection-word .pending-face-back .entry-text{font-size:1em;line-height:1.25;margin:.12em 0 .43em;overflow-wrap:anywhere}
     .projection-word .small,.projection-word .pending-face-back .small{font-size:.7em;line-height:1.25;margin:.5em 0}
     .projection-word .pending-face-front h3{font-size:clamp(30px,6vw,70px)}
+
+    /* Tarjeta compacta: vuelve a su tamaño natural sin ocupar toda la pantalla. */
+    .presentation-stage{justify-content:center}
+    .projection-word{position:relative;flex:0 0 auto;height:auto;max-height:100%;width:100%;margin:0 auto;overflow:hidden}
+    .projection-word .word-card,.projection-word .pending-card,.projection-word .pending-card-inner{height:100%;min-height:0;max-height:none}
+    .projection-pagination:not(.is-active){display:none}
+    .projection-controls{margin-top:clamp(8px,1.5dvh,16px)}
+
     .projection-controls{flex:0 0 auto;display:grid;gap:2px;justify-items:center;margin:clamp(4px,1dvh,10px) auto 0;max-width:100%;width:100%}
     .projection-controls button{min-height:44px;padding:8px 16px;font-size:clamp(15px,1.9vw,20px)}
     .projection-controls .small{font-size:clamp(11px,1.3vw,14px);line-height:1.2;max-width:100%}
@@ -735,6 +743,25 @@
     projectionPages=[];
     face.style.setProperty("--projection-scale","1");
     updateProjectionPagination();
+    const projectionWord=$("projection-word");
+    // Medimos el contenido real, pero limitamos la tarjeta a una altura moderada.
+    // El resto de la pantalla queda libre y no se convierte en una tarjeta vacía.
+    projectionWord.style.height="auto";
+    const measuringFace=face.cloneNode(true);
+    Object.assign(measuringFace.style,{
+      position:"absolute",inset:"0 0 auto 0",height:"auto",minHeight:"0",maxHeight:"none",
+      width:"100%",transform:"none",overflow:"visible",visibility:"hidden",pointerEvents:"none"
+    });
+    projectionWord.append(measuringFace);
+    const naturalHeight=Math.ceil(measuringFace.getBoundingClientRect().height);
+    measuringFace.remove();
+    const stage=$("presentation-stage");
+    const heading=stage.querySelector(".projection-heading");
+    const controls=stage.querySelector(".projection-controls");
+    const available=stage.clientHeight-heading.offsetHeight-controls.offsetHeight-32;
+    const maxHeight=Math.max(120,Math.min(window.innerHeight*.53,435,available));
+    const minimum=face.classList.contains("pending-face-back")?Math.min(290,window.innerHeight*.34):190;
+    projectionWord.style.height=Math.round(Math.max(Math.min(minimum,maxHeight),Math.min(naturalHeight,maxHeight)))+"px";
     const fits=()=>face.scrollHeight<=face.clientHeight+2;
     for(const scale of [1,.93,.86,.79,.72]) {
       face.style.setProperty("--projection-scale",String(scale));
